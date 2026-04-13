@@ -60,7 +60,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <WalletProvider>
-      <Outlet />
+      <AnimatedOutlet />
       <WalletConnectModal />
       <WalletConnectPrompt />
       <Toaster position="bottom-right" theme="dark" toastOptions={{
