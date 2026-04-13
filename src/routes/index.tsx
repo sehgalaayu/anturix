@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { DuelCard } from '@/components/feed/DuelCard';
 import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
@@ -27,6 +27,25 @@ function FeedPage() {
   const [animating, setAnimating] = useState(false);
   const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const tabRefs = useRef<Record<string, HTMLButtonElement>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  const updateIndicator = useCallback(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      const parent = el.parentElement;
+      if (parent) {
+        setIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+        });
+      }
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    updateIndicator();
+  }, [updateIndicator]);
 
   const handleTabChange = (tab: typeof tabs[number]) => {
     if (tab === activeTab) return;
@@ -54,30 +73,33 @@ function FeedPage() {
   return (
     <MainLayout>
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-border">
+      <div className="relative flex items-center gap-1 mb-6 border-b border-border">
         {tabs.map((tab) => (
           <button
             key={tab}
+            ref={(el) => { if (el) tabRefs.current[tab] = el; }}
             onClick={() => handleTabChange(tab)}
-            className={`px-4 py-2.5 text-sm font-medium transition-all relative flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 text-sm font-medium transition-colors relative flex items-center gap-1.5 ${
               activeTab === tab
                 ? 'text-primary'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab}
-            <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+            <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold transition-colors ${
               activeTab === tab
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground'
             }`}>
               {tabCounts[tab]}
             </span>
-            {activeTab === tab && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)]" />
-            )}
           </button>
         ))}
+        {/* Sliding indicator */}
+        <div
+          className="absolute bottom-0 h-0.5 bg-primary rounded-full shadow-[0_0_8px_var(--color-primary)] transition-all duration-300 ease-out"
+          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+        />
       </div>
 
       {/* Feed with pull-to-refresh */}
