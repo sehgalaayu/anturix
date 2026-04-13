@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Swords, Eye, Users, Clock, Coins, ChevronDown, Zap } from 'lucide-react';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWalletContext } from '@/contexts/WalletContext';
 
 const betTypes = [
   { value: 'duel', label: '1v1 Duelo', icon: Swords, description: 'Challenge someone directly' },
@@ -25,7 +25,7 @@ interface CreateBetModalProps {
 }
 
 export function CreateBetModal({ open, onClose }: CreateBetModalProps) {
-  const { connected, requireWallet } = useWallet();
+  const { connected, requireWallet } = useWalletContext();
   const [betType, setBetType] = useState<string>('duel');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
