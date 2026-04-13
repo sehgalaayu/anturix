@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { currentUser, mockAchievements } from '@/data/mockData';
 import { Trophy, TrendingUp, Coins, Star, Swords, Shield } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 export const Route = createFileRoute('/profile')({
   head: () => ({
@@ -29,12 +29,19 @@ const stats = [
 
 function ProfilePage() {
   const [activeTab, setActiveTab] = useState<typeof profileTabs[number]>('Achievements');
+  const coverRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll();
+  const coverY = useTransform(scrollY, [0, 200], [0, 60]);
+  const coverScale = useTransform(scrollY, [0, 200], [1, 1.15]);
 
   return (
     <MainLayout>
-      {/* Cover */}
-      <div className="relative h-32 rounded-xl overflow-hidden mb-16">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-accent/20 to-success/20" />
+      {/* Cover with parallax */}
+      <div className="relative h-32 rounded-xl overflow-hidden mb-16" ref={coverRef}>
+        <motion.div
+          style={{ y: coverY, scale: coverScale }}
+          className="absolute inset-0 bg-gradient-to-r from-primary/30 via-accent/20 to-success/20 origin-center"
+        />
         <div className="absolute inset-0 bg-grid opacity-30" />
       </div>
 

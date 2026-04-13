@@ -343,6 +343,19 @@
   animation: shimmer 3s linear infinite;
 }
 
+/* FAB glow */
+@keyframes fab-pulse {
+  0%, 100% { box-shadow: 0 0 15px oklch(0.82 0.18 195 / 0.5), 0 0 30px oklch(0.7 0.22 340 / 0.2); }
+  50% { box-shadow: 0 0 25px oklch(0.82 0.18 195 / 0.7), 0 0 50px oklch(0.7 0.22 340 / 0.3); }
+}
+.fab-glow {
+  animation: fab-pulse 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
