@@ -52,7 +52,7 @@ function FeedPage() {
         {tabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
               activeTab === tab
                 ? 'text-primary'
@@ -69,7 +69,7 @@ function FeedPage() {
 
       {/* Feed with pull-to-refresh */}
       <PullToRefresh>
-        <div className="space-y-4">
+        <div className={`space-y-4 transition-all duration-200 ${animating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
           {activeFeed.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p className="text-lg font-medium">No hay items aquí todavía</p>
