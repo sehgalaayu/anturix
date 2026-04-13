@@ -20,7 +20,7 @@ export function Navbar() {
         <div className="h-14 flex items-center gap-3">
           {/* Logo (mobile) */}
           <Link to="/" className="lg:hidden flex items-center gap-2">
-            <img src={atxLogo} alt="ATX" className="w-8 h-8 rounded-lg object-cover" />
+            <img src={atxLogo} alt="ATX" className="w-16 h-16 rounded-lg object-cover" />
             <span className="font-heading font-bold text-primary text-sm tracking-wider">ANTURIX</span>
           </Link>
 
