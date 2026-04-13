@@ -356,6 +356,66 @@
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Legend rank animated rainbow border */
+@keyframes rainbow-rotate {
+  0% { --rainbow-angle: 0deg; }
+  100% { --rainbow-angle: 360deg; }
+}
+@property --rainbow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.rank-legend-avatar {
+  position: relative;
+  border-radius: 9999px;
+  padding: 2px;
+  background: conic-gradient(from var(--rainbow-angle), oklch(0.82 0.18 195), oklch(0.7 0.22 340), oklch(0.82 0.16 85), oklch(0.78 0.2 155), oklch(0.82 0.18 195));
+  animation: rainbow-rotate 3s linear infinite;
+}
+.rank-legend-avatar img {
+  border-radius: 9999px;
+}
+.rank-legend {
+  background: linear-gradient(90deg, oklch(0.82 0.18 195), oklch(0.7 0.22 340), oklch(0.82 0.16 85), oklch(0.78 0.2 155));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Achievement toast confetti */
+.achievement-toast {
+  animation: achievement-pop 0.5s ease-out;
+}
+@keyframes achievement-pop {
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.confetti-particle {
+  position: absolute;
+  top: -8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  animation: confetti-fall 1.5s ease-out forwards;
+}
+.confetti-0 { background: oklch(0.82 0.18 195); }
+.confetti-1 { background: oklch(0.7 0.22 340); }
+.confetti-2 { background: oklch(0.82 0.16 85); }
+.confetti-3 { background: oklch(0.78 0.2 155); }
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(80px) rotate(720deg); opacity: 0; }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
