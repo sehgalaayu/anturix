@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { leaderboardUsers } from '@/data/mockData';
-import { Crown, TrendingUp, TrendingDown, Flame } from 'lucide-react';
+import { Crown, Flame } from 'lucide-react';
 
 export const Route = createFileRoute('/leaderboard')({
   head: () => ({
@@ -60,8 +60,46 @@ function LeaderboardPage() {
         ))}
       </div>
 
-      {/* Podium */}
-      <div className="flex items-end justify-center gap-3 mb-8">
+      {/* Mobile horizontal scrollable podium */}
+      <div className="sm:hidden mb-8">
+        <div className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+          {top3.map((user, i) => {
+            const medals = ['🥇', '🥈', '🥉'];
+            const glows = ['glow-gold', 'glow-cyan', 'glow-magenta'];
+            return (
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.12 }}
+                className={`snap-center shrink-0 w-[75vw] glass-card cyber-corners p-5 flex flex-col items-center gap-2`}
+              >
+                <div className="cyber-corners-bottom w-full flex flex-col items-center">
+                  <span className="text-3xl mb-1">{medals[i]}</span>
+                  <img
+                    src={user.avatar}
+                    alt={user.username}
+                    className={`w-20 h-20 rounded-full border-2 ${i === 0 ? 'border-gold' : i === 1 ? 'border-muted-foreground' : 'border-accent'} ${glows[i]}`}
+                  />
+                  <p className="font-heading text-sm font-bold text-foreground mt-2">{user.username}</p>
+                  <p className="text-xs text-muted-foreground">{user.totalEarnings.toLocaleString()} SOL</p>
+                  <div className="flex items-center gap-3 mt-2 text-xs">
+                    <span className="text-success font-semibold">{user.winRate}% WR</span>
+                    {user.streak > 0 && (
+                      <span className="flex items-center gap-0.5 text-gold">
+                        <Flame className="w-3 h-3" /> {user.streak}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop podium */}
+      <div className="hidden sm:flex items-end justify-center gap-3 mb-8">
         {podiumOrder.map((user, i) => (
           <motion.div
             key={user.id}
