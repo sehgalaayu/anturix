@@ -11,9 +11,9 @@ export function ExpertLockCard({ prediction, index = 0 }: { prediction: Predicti
       initial={{ opacity: 0, y: 20, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="glass-card glass-card-hover overflow-hidden transition-all duration-300 cursor-pointer"
+      className="glass-card glass-card-hover card-scanline cyber-corners overflow-hidden transition-all duration-300 cursor-pointer"
     >
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 cyber-corners-bottom">
         {/* Expert profile */}
         <div className="flex items-center gap-3">
           <img src={expert.avatar} alt={expert.username} className="w-10 h-10 rounded-full border-2 border-gold" />
