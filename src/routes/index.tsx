@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { DuelCard } from '@/components/feed/DuelCard';
 import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
@@ -24,6 +24,24 @@ const tabs = ['Feed', 'My Bets', 'Discover'] as const;
 
 function FeedPage() {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]>('Feed');
+  const [animating, setAnimating] = useState(false);
+  const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleTabChange = (tab: typeof tabs[number]) => {
+    if (tab === activeTab) return;
+    setAnimating(true);
+    // After fade out, switch content and fade in
+    timeoutRef.current = setTimeout(() => {
+      setActiveTab(tab);
+      setDisplayTab(tab);
+      setAnimating(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
 
   const activeFeed = activeTab === 'My Bets' ? myBetsFeed : activeTab === 'Discover' ? discoverFeed : mockFeed;
 
