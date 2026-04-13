@@ -146,23 +146,182 @@
   box-shadow: var(--glow-green);
 }
 
-/* Grid background */
+/* Animated grid background */
+@keyframes grid-drift {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 60px 60px, 60px 60px; }
+}
 .bg-grid {
   background-image:
     linear-gradient(oklch(0.25 0.02 260 / 0.3) 1px, transparent 1px),
     linear-gradient(90deg, oklch(0.25 0.02 260 / 0.3) 1px, transparent 1px);
   background-size: 60px 60px;
+  animation: grid-drift 20s linear infinite;
 }
 
-/* Gradient mesh background */
+/* Floating particles via pseudo-elements */
 .bg-mesh {
   background:
     radial-gradient(ellipse at 20% 50%, oklch(0.82 0.18 195 / 0.06) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, oklch(0.7 0.22 340 / 0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, oklch(0.78 0.2 155 / 0.04) 0%, transparent 50%);
+  position: relative;
+}
+.bg-mesh::before,
+.bg-mesh::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.bg-mesh::before {
+  width: 3px; height: 3px;
+  top: 20%; left: 30%;
+  background: oklch(0.82 0.18 195 / 0.5);
+  box-shadow:
+    120px 80px 0 oklch(0.82 0.18 195 / 0.3),
+    300px 200px 0 oklch(0.7 0.22 340 / 0.3),
+    500px 100px 0 oklch(0.78 0.2 155 / 0.25),
+    80px 400px 0 oklch(0.82 0.18 195 / 0.2),
+    450px 350px 0 oklch(0.7 0.22 340 / 0.35),
+    200px 500px 0 oklch(0.82 0.16 85 / 0.2),
+    600px 450px 0 oklch(0.82 0.18 195 / 0.15);
+  animation: float-particles 25s ease-in-out infinite alternate;
+}
+.bg-mesh::after {
+  width: 2px; height: 2px;
+  top: 50%; left: 60%;
+  background: oklch(0.7 0.22 340 / 0.4);
+  box-shadow:
+    -100px -50px 0 oklch(0.78 0.2 155 / 0.3),
+    -250px 150px 0 oklch(0.82 0.18 195 / 0.25),
+    50px -200px 0 oklch(0.7 0.22 340 / 0.2),
+    -400px -100px 0 oklch(0.82 0.16 85 / 0.3),
+    150px 300px 0 oklch(0.82 0.18 195 / 0.2);
+  animation: float-particles 30s ease-in-out infinite alternate-reverse;
+}
+@keyframes float-particles {
+  0% { transform: translate(0, 0); }
+  33% { transform: translate(15px, -20px); }
+  66% { transform: translate(-10px, 15px); }
+  100% { transform: translate(20px, -10px); }
 }
 
-/* Pulse animation for VS */
+/* Card scan line effect */
+.card-scanline {
+  position: relative;
+  overflow: hidden;
+}
+.card-scanline::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, oklch(0.82 0.18 195 / 0.8), transparent);
+  box-shadow: 0 0 10px oklch(0.82 0.18 195 / 0.5);
+  transition: none;
+  pointer-events: none;
+  z-index: 10;
+}
+.card-scanline:hover::after {
+  animation: scanline 0.8s ease-out;
+}
+@keyframes scanline {
+  0% { top: -2px; }
+  100% { top: 100%; }
+}
+
+/* VS glitch effect */
+@keyframes glitch {
+  0%, 100% { transform: translate(0); text-shadow: 0 0 20px oklch(0.82 0.18 195 / 0.8); }
+  10% { transform: translate(-2px, 1px); text-shadow: 2px 0 oklch(0.7 0.22 340 / 0.7), -2px 0 oklch(0.82 0.18 195 / 0.7); }
+  20% { transform: translate(2px, -1px); text-shadow: -2px 0 oklch(0.7 0.22 340 / 0.7), 2px 0 oklch(0.82 0.18 195 / 0.7); }
+  30% { transform: translate(0); text-shadow: 0 0 20px oklch(0.82 0.18 195 / 0.8); }
+  40% { transform: translate(1px, 2px); text-shadow: 2px 0 oklch(0.7 0.22 340 / 0.5); }
+  50% { transform: translate(-1px, -1px); text-shadow: -1px 0 oklch(0.82 0.18 195 / 0.9), 1px 0 oklch(0.7 0.22 340 / 0.5); }
+  55% { transform: translate(0); text-shadow: 0 0 20px oklch(0.82 0.18 195 / 0.8); }
+}
+.animate-glitch {
+  animation: glitch 3s ease-in-out infinite;
+}
+
+/* LIVE pulse indicator */
+@keyframes live-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.65 0.25 15 / 0.7); }
+  50% { box-shadow: 0 0 0 6px oklch(0.65 0.25 15 / 0); }
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: oklch(0.65 0.25 15);
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+/* Solana spin */
+@keyframes slow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-slow-spin {
+  animation: slow-spin 8s linear infinite;
+}
+
+/* Cyberpunk corner brackets */
+.cyber-corners {
+  position: relative;
+}
+.cyber-corners::before,
+.cyber-corners::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+.cyber-corners::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid oklch(0.82 0.18 195 / 0.7);
+  border-left: 2px solid oklch(0.82 0.18 195 / 0.7);
+}
+.cyber-corners::after {
+  top: -1px;
+  right: -1px;
+  border-top: 2px solid oklch(0.82 0.18 195 / 0.7);
+  border-right: 2px solid oklch(0.82 0.18 195 / 0.7);
+}
+/* Bottom corners via inner element */
+.cyber-corners-bottom {
+  position: relative;
+}
+.cyber-corners-bottom::before,
+.cyber-corners-bottom::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 5;
+}
+.cyber-corners-bottom::before {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 2px solid oklch(0.7 0.22 340 / 0.7);
+  border-left: 2px solid oklch(0.7 0.22 340 / 0.7);
+}
+.cyber-corners-bottom::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid oklch(0.7 0.22 340 / 0.7);
+  border-right: 2px solid oklch(0.7 0.22 340 / 0.7);
+}
+
+/* Pulse animation for VS (legacy) */
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; text-shadow: 0 0 20px oklch(0.82 0.18 195 / 0.8); }
   50% { opacity: 0.7; text-shadow: 0 0 40px oklch(0.82 0.18 195 / 0.4); }

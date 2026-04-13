@@ -47,7 +47,7 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-sidebar-border">
         <div className={`flex items-center gap-2 text-muted-foreground ${collapsed ? 'justify-center' : ''}`}>
-          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195] shrink-0" />
+          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#9945FF] to-[#14F195] shrink-0 animate-slow-spin" />
           {!collapsed && <span className="text-xs font-medium">Powered by Solana</span>}
         </div>
       </div>
