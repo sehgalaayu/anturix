@@ -1,5 +1,6 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { AnimatedOutlet } from "@/components/layout/AnimatedOutlet";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { WalletConnectModal } from "@/components/wallet/WalletConnectModal";
 import { WalletConnectPrompt } from "@/components/wallet/WalletConnectPrompt";
