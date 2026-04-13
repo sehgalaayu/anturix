@@ -6,7 +6,7 @@ import { ExpertLockCard } from '@/components/feed/ExpertLockCard';
 import { PokerPoolCard } from '@/components/feed/PokerPoolCard';
 import { SwipeableCard } from '@/components/feed/SwipeableCard';
 import { PullToRefresh } from '@/components/feed/PullToRefresh';
-import { mockFeed } from '@/data/mockData';
+import { mockFeed, myBetsFeed, discoverFeed } from '@/data/mockData';
 
 export const Route = createFileRoute('/')({
   head: () => ({
