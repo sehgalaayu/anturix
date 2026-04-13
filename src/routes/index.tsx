@@ -27,6 +27,25 @@ function FeedPage() {
   const [animating, setAnimating] = useState(false);
   const [displayTab, setDisplayTab] = useState<typeof tabs[number]>('Feed');
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const tabRefs = useRef<Record<string, HTMLButtonElement>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  const updateIndicator = useCallback(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      const parent = el.parentElement;
+      if (parent) {
+        setIndicatorStyle({
+          left: el.offsetLeft,
+          width: el.offsetWidth,
+        });
+      }
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    updateIndicator();
+  }, [updateIndicator]);
 
   const handleTabChange = (tab: typeof tabs[number]) => {
     if (tab === activeTab) return;
