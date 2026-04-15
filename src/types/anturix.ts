@@ -17,6 +17,18 @@ export interface User {
   penaltyActive?: boolean;
 }
 
+export type CryptoCondition = 'above' | 'below' | 'even' | 'odd' | 'first_to' | 'one_touch';
+export type CryptoAsset = 'SOL' | 'BTC' | 'ETH';
+
+export interface DuelCryptoInfo {
+  asset: CryptoAsset;
+  condition: CryptoCondition;
+  targetPrice?: number;
+  assetB?: CryptoAsset;
+  targetPriceB?: number;
+  expiresLabel?: string; // e.g. "4:00 PM"
+}
+
 export interface Duel {
   id: string;
   title: string;
@@ -29,6 +41,7 @@ export interface Duel {
   percentage: { challenger: number; opponent: number };
   totalPool: number;
   createdAt: string;
+  crypto?: DuelCryptoInfo;
 }
 
 export interface Prediction {
