@@ -2,6 +2,7 @@ import { Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-rou
 import { Toaster } from "sonner";
 import { AnimatedOutlet } from "@/components/layout/AnimatedOutlet";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WalletConnectModal } from "@/components/wallet/WalletConnectModal";
 import { WalletConnectPrompt } from "@/components/wallet/WalletConnectPrompt";
 
@@ -63,13 +64,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <WalletProvider>
-      <AnimatedOutlet />
-      <WalletConnectModal />
-      <WalletConnectPrompt />
-      <Toaster position="bottom-right" theme="dark" toastOptions={{
-        style: { background: 'oklch(0.16 0.02 260)', border: '1px solid oklch(0.3 0.02 260)', color: 'oklch(0.95 0.01 250)' },
-      }} />
-    </WalletProvider>
+    <ThemeProvider>
+      <WalletProvider>
+        <AnimatedOutlet />
+        <WalletConnectModal />
+        <WalletConnectPrompt />
+        <Toaster position="bottom-right" theme="dark" toastOptions={{
+          style: { background: 'oklch(0.16 0.02 260)', border: '1px solid oklch(0.3 0.02 260)', color: 'oklch(0.95 0.01 250)' },
+        }} />
+      </WalletProvider>
+    </ThemeProvider>
   );
 }
