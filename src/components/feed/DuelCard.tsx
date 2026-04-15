@@ -1,9 +1,87 @@
 import { motion } from 'framer-motion';
 import { Users, Shield } from 'lucide-react';
-import type { Duel } from '@/types/anturix';
+import type { Duel, CryptoCondition } from '@/types/anturix';
 import { AvatarWithRank, RankBadge, StreakBadge } from '@/components/gamification/RankSystem';
 import { BanterChat } from '@/components/feed/BanterChat';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+const ASSET_ICONS: Record<string, string> = {
+  SOL: '◎',
+  BTC: '₿',
+  ETH: 'Ξ',
+};
+
+const CONDITION_CONFIG: Record<CryptoCondition, { emoji: string; label: string; pillBg: string; pillText: string; pillBorder: string }> = {
+  above: { emoji: '🔼', label: 'Arriba de', pillBg: 'bg-emerald-500/15', pillText: 'text-emerald-400', pillBorder: 'border-emerald-500/30' },
+  below: { emoji: '🔽', label: 'Debajo de', pillBg: 'bg-red-500/15', pillText: 'text-red-400', pillBorder: 'border-red-500/30' },
+  even: { emoji: '🎲', label: 'PAR', pillBg: 'bg-purple-500/15', pillText: 'text-purple-400', pillBorder: 'border-purple-500/30' },
+  odd: { emoji: '🎲', label: 'IMPAR', pillBg: 'bg-violet-500/15', pillText: 'text-violet-400', pillBorder: 'border-violet-500/30' },
+  first_to: { emoji: '🏁', label: 'Carrera', pillBg: 'bg-amber-500/15', pillText: 'text-amber-400', pillBorder: 'border-amber-500/30' },
+  one_touch: { emoji: '💥', label: 'Kamikaze', pillBg: 'bg-orange-500/15', pillText: 'text-orange-400', pillBorder: 'border-orange-500/30' },
+};
+
+function CryptoConditionPills({ duel }: { duel: Duel }) {
+  const crypto = duel.crypto;
+  if (!crypto) return null;
+
+  const cond = CONDITION_CONFIG[crypto.condition];
+  const assetIcon = ASSET_ICONS[crypto.asset] || crypto.asset;
+  const isRace = crypto.condition === 'first_to';
+  const isDigit = crypto.condition === 'even' || crypto.condition === 'odd';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2, duration: 0.3 }}
+      className="px-4 pb-2"
+    >
+      <div className="flex flex-wrap items-center gap-1.5">
+        {/* Asset pill */}
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/15 border border-primary/30 text-[11px] font-heading font-bold text-primary">
+          {assetIcon} {crypto.asset}
+        </span>
+
+        <span className="text-muted-foreground text-[10px]">+</span>
+
+        {/* Condition pill */}
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-heading font-bold ${cond.pillBg} ${cond.pillText} ${cond.pillBorder}`}>
+          {cond.emoji} {cond.label}
+        </span>
+
+        {/* Target / specifics */}
+        {crypto.targetPrice && !isRace && (
+          <>
+            <span className="text-muted-foreground text-[10px]">+</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted/50 border border-border text-[11px] font-heading font-bold text-foreground">
+              💰 ${crypto.targetPrice.toLocaleString()}
+            </span>
+          </>
+        )}
+
+        {/* Race: show both assets */}
+        {isRace && crypto.assetB && (
+          <>
+            <span className="text-muted-foreground text-[10px]">vs</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/15 border border-accent/30 text-[11px] font-heading font-bold text-accent">
+              {ASSET_ICONS[crypto.assetB] || crypto.assetB} {crypto.assetB}
+            </span>
+          </>
+        )}
+
+        {/* Digit bet: show time */}
+        {isDigit && crypto.expiresLabel && (
+          <>
+            <span className="text-muted-foreground text-[10px]">+</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-muted/50 border border-border text-[11px] font-heading font-bold text-foreground">
+              ⏱️ {crypto.expiresLabel}
+            </span>
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 function PlayerRankLine({ rank, wins }: { rank: string; wins: number }) {
   return (
@@ -15,18 +93,25 @@ function PlayerRankLine({ rank, wins }: { rank: string; wins: number }) {
 
 export function DuelCard({ duel, index = 0 }: { duel: Duel; index?: number }) {
   const { challenger, opponent } = duel;
+  const hasCrypto = !!duel.crypto;
+  const condConfig = duel.crypto ? CONDITION_CONFIG[duel.crypto.condition] : null;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      initial={{ opacity: 0, y: 30, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index * 0.08, type: 'spring', stiffness: 200, damping: 25 }}
       className="glass-card glass-card-hover border-gradient-cyan-magenta card-scanline cyber-corners overflow-hidden transition-all duration-300 cursor-pointer"
     >
       <div className="cyber-corners-bottom">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <h3 className="font-heading text-xs font-semibold text-foreground tracking-wider">{duel.title.toUpperCase()}</h3>
+          <div className="flex items-center gap-2">
+            {hasCrypto && condConfig && (
+              <span className="text-base">{condConfig.emoji}</span>
+            )}
+            <h3 className="font-heading text-xs font-semibold text-foreground tracking-wider">{duel.title.toUpperCase()}</h3>
+          </div>
           <div className="flex items-center gap-2">
             {duel.status === 'active' && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-destructive/15 border border-destructive/30">
@@ -39,6 +124,13 @@ export function DuelCard({ duel, index = 0 }: { duel: Duel; index?: number }) {
 
         {/* Event */}
         <p className="px-4 text-[10px] text-muted-foreground font-medium tracking-wide">{duel.eventLabel}</p>
+
+        {/* Crypto condition pills */}
+        {hasCrypto && (
+          <div className="pt-2">
+            <CryptoConditionPills duel={duel} />
+          </div>
+        )}
 
         {/* Bet amount */}
         <div className="text-center py-2">
