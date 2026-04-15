@@ -24,7 +24,6 @@ check-cfg = [
 
 [dependencies]
 anchor-lang = "1.0.0"
-sha2 = "0.10"
 
 [dev-dependencies]
 litesvm = "=0.7.1"
