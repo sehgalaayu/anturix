@@ -35,7 +35,7 @@ pub const BTC_USD_FEED: [u8; 32] = [
 ];
 
 /// Convert anchor AccountMetas to solana-sdk AccountMetas
-fn convert_account_metas(metas: Vec<anchor_lang::prelude::AccountMeta>) -> Vec<AccountMeta> {
+pub fn convert_account_metas(metas: Vec<anchor_lang::prelude::AccountMeta>) -> Vec<AccountMeta> {
     metas.into_iter().map(|m| {
         let pubkey = Pubkey::new_from_array(m.pubkey.to_bytes());
         if m.is_writable {
@@ -239,27 +239,58 @@ pub fn ix_create_duel(
     target_opponent: Option<Pubkey>,
     expires_at: i64,
 ) -> Instruction {
+    ix_create_duel_full(
+        creator, duel_count, price_feed_id, target_price, condition,
+        stake_amount, target_opponent, expires_at, 0, 0, [0u8; 32], &[],
+    )
+}
+
+pub fn ix_create_duel_full(
+    creator: &Pubkey,
+    duel_count: u64,
+    price_feed_id: [u8; 32],
+    target_price: i64,
+    condition: anturix::state::Condition,
+    stake_amount: u64,
+    target_opponent: Option<Pubkey>,
+    expires_at: i64,
+    lower_bound: i64,
+    upper_bound: i64,
+    price_feed_id_b: [u8; 32],
+    remaining_accounts: &[Pubkey],
+) -> Instruction {
     let (profile, _) = profile_pda(creator);
     let (duel, _) = duel_pda(creator, duel_count);
     let (escrow, _) = escrow_pda(&duel);
 
-    build_ix(
-        anturix::accounts::CreateDuel {
-            creator: ap(creator),
-            creator_profile: ap(&profile),
-            duel_state: ap(&duel),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
-        },
-        anturix::instruction::CreateDuel {
+    let anchor_accounts = anturix::accounts::CreateDuel {
+        creator: ap(creator),
+        creator_profile: ap(&profile),
+        duel_state: ap(&duel),
+        escrow: ap(&escrow),
+        system_program: sys_id(),
+    };
+    let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
+
+    for key in remaining_accounts {
+        metas.push(AccountMeta::new_readonly(*key, false));
+    }
+
+    Instruction {
+        program_id: prog_id(),
+        accounts: metas,
+        data: anturix::instruction::CreateDuel {
             price_feed_id,
             target_price,
             condition,
             stake_amount,
             target_opponent: target_opponent.map(|p| ap(&p)),
             expires_at,
+            lower_bound,
+            upper_bound,
+            price_feed_id_b,
         }.data(),
-    )
+    }
 }
 
 pub fn ix_accept_duel(opponent: &Pubkey, duel_state: &Pubkey) -> Instruction {
@@ -298,6 +329,37 @@ pub fn ix_resolve_duel(
         },
         anturix::instruction::ResolveDuel {}.data(),
     )
+}
+
+pub fn ix_resolve_duel_with_remaining(
+    resolver: &Pubkey,
+    duel_state: &Pubkey,
+    creator: &Pubkey,
+    opponent: &Pubkey,
+    price_update: &Pubkey,
+    remaining_accounts: &[Pubkey],
+) -> Instruction {
+    let (creator_profile, _) = profile_pda(creator);
+    let (opponent_profile, _) = profile_pda(opponent);
+
+    let anchor_accounts = anturix::accounts::ResolveDuel {
+        resolver: ap(resolver),
+        duel_state: ap(duel_state),
+        price_update: ap(price_update),
+        creator_profile: ap(&creator_profile),
+        opponent_profile: ap(&opponent_profile),
+    };
+    let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
+
+    for key in remaining_accounts {
+        metas.push(AccountMeta::new_readonly(*key, false));
+    }
+
+    Instruction {
+        program_id: prog_id(),
+        accounts: metas,
+        data: anturix::instruction::ResolveDuel {}.data(),
+    }
 }
 
 pub fn ix_claim_prize(winner: &Pubkey, duel_state: &Pubkey) -> Instruction {

@@ -1222,6 +1222,457 @@ fn test_resolve_cancelled_duel_fails() {
     assert!(!err.is_empty(), "resolving cancelled duel should fail");
 }
 
+// ══════════════════════════════════════════════
+// NEW CONDITION TYPES
+// ══════════════════════════════════════════════
+
+// ── Odd / Even (Crypto Roulette) ──
+
+#[test]
+fn test_odd_condition_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::Odd,
+        STAKE, None, expires_at,
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price ends in 7 (odd) -> creator wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_007, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+#[test]
+fn test_odd_condition_opponent_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::Odd,
+        STAKE, None, expires_at,
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price ends in 4 (even) -> opponent wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_004, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&bob.pubkey())));
+}
+
+#[test]
+fn test_even_condition_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::Even,
+        STAKE, None, expires_at,
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price ends in 0 (even) -> creator wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+// ── InRange / OutOfRange ──
+
+#[test]
+fn test_in_range_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    // Range: $140-$160 (14B - 16B in Pyth format)
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::InRange,
+        STAKE, None, expires_at,
+        14_000_000_000, 16_000_000_000, [0u8; 32], &[],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price $150 -- inside range -> creator wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+#[test]
+fn test_in_range_at_boundary_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::InRange,
+        STAKE, None, expires_at,
+        14_000_000_000, 16_000_000_000, [0u8; 32], &[],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price exactly at upper bound -- inclusive, creator wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 16_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+#[test]
+fn test_in_range_outside_opponent_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::InRange,
+        STAKE, None, expires_at,
+        14_000_000_000, 16_000_000_000, [0u8; 32], &[],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price $170 -- outside range -> opponent wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 17_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&bob.pubkey())));
+}
+
+#[test]
+fn test_out_of_range_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::OutOfRange,
+        STAKE, None, expires_at,
+        14_000_000_000, 16_000_000_000, [0u8; 32], &[],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // Price $120 -- outside range -> creator wins
+    let pyth = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 12_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    send_tx(&mut svm, &[ix_resolve_duel(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(), &pyth,
+    )], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+// ── AssetRace ──
+
+#[test]
+fn test_asset_race_creator_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+
+    // Start prices: SOL=$150, BTC=$50000
+    let start_pyth_a = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_000, SOL_CONF, SOL_EXPONENT, future_ts(0),
+    );
+    let start_pyth_b = create_mock_pyth_account(
+        &mut svm, &BTC_USD_FEED, 5_000_000_000_000, SOL_CONF, SOL_EXPONENT, future_ts(0),
+    );
+
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::AssetRace,
+        STAKE, None, expires_at,
+        0, 0, BTC_USD_FEED, &[start_pyth_a, start_pyth_b],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // End prices: SOL=$165 (+10%), BTC=$52500 (+5%) -> SOL wins -> creator wins
+    let end_pyth_a = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 16_500_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    let end_pyth_b = create_mock_pyth_account(
+        &mut svm, &BTC_USD_FEED, 5_250_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+
+    let ix = ix_resolve_duel_with_remaining(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(),
+        &end_pyth_a, &[end_pyth_b],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&alice.pubkey())));
+}
+
+#[test]
+fn test_asset_race_opponent_wins() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    let bob = Keypair::new();
+    fund_user(&mut svm, &alice);
+    fund_user(&mut svm, &bob);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+    send_tx(&mut svm, &[ix_init_profile(&bob.pubkey())], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+
+    let expires_at = future_ts(3600);
+
+    let start_pyth_a = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_000, SOL_CONF, SOL_EXPONENT, future_ts(0),
+    );
+    let start_pyth_b = create_mock_pyth_account(
+        &mut svm, &BTC_USD_FEED, 5_000_000_000_000, SOL_CONF, SOL_EXPONENT, future_ts(0),
+    );
+
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::AssetRace,
+        STAKE, None, expires_at,
+        0, 0, BTC_USD_FEED, &[start_pyth_a, start_pyth_b],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let (duel_key, _) = duel_pda(&alice.pubkey(), 0);
+    send_tx(&mut svm, &[ix_accept_duel(&bob.pubkey(), &duel_key)], &bob, &[&bob]).unwrap();
+    advance_slot(&mut svm);
+    set_clock(&mut svm, expires_at + 10);
+
+    // End: SOL=$153 (+2%), BTC=$55000 (+10%) -> BTC wins -> opponent wins
+    let end_pyth_a = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_300_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+    let end_pyth_b = create_mock_pyth_account(
+        &mut svm, &BTC_USD_FEED, 5_500_000_000_000, SOL_CONF, SOL_EXPONENT, expires_at + 5,
+    );
+
+    let ix = ix_resolve_duel_with_remaining(
+        &alice.pubkey(), &duel_key, &alice.pubkey(), &bob.pubkey(),
+        &end_pyth_a, &[end_pyth_b],
+    );
+    send_tx(&mut svm, &[ix], &alice, &[&alice]).unwrap();
+
+    let duel: DuelState = get_account(&svm, &duel_key);
+    assert_eq!(duel.winner, Some(to_anchor_pubkey(&bob.pubkey())));
+}
+
+// ── Validation edge cases for new conditions ──
+
+#[test]
+fn test_in_range_invalid_bounds_rejected() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    fund_user(&mut svm, &alice);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    // upper <= lower
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::InRange,
+        STAKE, None, future_ts(3600),
+        16_000_000_000, 14_000_000_000, [0u8; 32], &[],
+    );
+    let err = send_tx_expect_err(&mut svm, &[ix], &alice, &[&alice]);
+    assert!(err.contains("InvalidBounds"), "bad bounds should fail, got: {err}");
+}
+
+#[test]
+fn test_asset_race_same_feed_rejected() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    fund_user(&mut svm, &alice);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    let pyth_a = create_mock_pyth_account(
+        &mut svm, &SOL_USD_FEED, 15_000_000_000, SOL_CONF, SOL_EXPONENT, future_ts(0),
+    );
+
+    // Same feed for both
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::AssetRace,
+        STAKE, None, future_ts(3600),
+        0, 0, SOL_USD_FEED, &[pyth_a, pyth_a],
+    );
+    let err = send_tx_expect_err(&mut svm, &[ix], &alice, &[&alice]);
+    assert!(err.contains("InvalidSecondFeed"), "same feed should fail, got: {err}");
+}
+
+#[test]
+fn test_asset_race_missing_price_accounts() {
+    let mut svm = setup();
+    let alice = Keypair::new();
+    fund_user(&mut svm, &alice);
+
+    send_tx(&mut svm, &[ix_init_profile(&alice.pubkey())], &alice, &[&alice]).unwrap();
+    advance_slot(&mut svm);
+
+    // No remaining_accounts for AssetRace
+    let ix = ix_create_duel_full(
+        &alice.pubkey(), 0, SOL_USD_FEED, 0, Condition::AssetRace,
+        STAKE, None, future_ts(3600),
+        0, 0, BTC_USD_FEED, &[], // empty!
+    );
+    let err = send_tx_expect_err(&mut svm, &[ix], &alice, &[&alice]);
+    assert!(err.contains("MissingPriceAccount"), "missing accounts should fail, got: {err}");
+}
+
 // ── Below condition test ──
 
 #[test]
