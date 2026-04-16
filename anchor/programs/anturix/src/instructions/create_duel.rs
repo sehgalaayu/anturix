@@ -4,6 +4,7 @@ use crate::state::{UserProfile, DuelState, DuelStatus, Condition};
 use crate::constants::*;
 use crate::errors::AnturixError;
 use crate::events::DuelCreated;
+use crate::pyth;
 
 pub fn handler(
     ctx: Context<CreateDuel>,
@@ -13,9 +14,11 @@ pub fn handler(
     stake_amount: u64,
     target_opponent: Option<Pubkey>,
     expires_at: i64,
+    lower_bound: i64,
+    upper_bound: i64,
+    price_feed_id_b: [u8; 32],
 ) -> Result<()> {
     require!(stake_amount >= MIN_STAKE, AnturixError::StakeTooLow);
-    require!(target_price > 0, AnturixError::InvalidTargetPrice);
 
     let clock = Clock::get()?;
     require!(expires_at > clock.unix_timestamp, AnturixError::InvalidExpiry);
@@ -23,6 +26,44 @@ pub fn handler(
         expires_at >= clock.unix_timestamp.checked_add(MIN_EXPIRY_DURATION).ok_or(AnturixError::Overflow)?,
         AnturixError::InvalidExpiry
     );
+
+    // Per-condition validation
+    let mut start_price_a: i64 = 0;
+    let mut start_price_b: i64 = 0;
+
+    match condition {
+        Condition::Above | Condition::Below => {
+            require!(target_price > 0, AnturixError::InvalidTargetPrice);
+        }
+        Condition::Odd | Condition::Even => {
+            // Just needs a feed_id, no target validation
+        }
+        Condition::InRange | Condition::OutOfRange => {
+            require!(lower_bound > 0, AnturixError::InvalidBounds);
+            require!(upper_bound > lower_bound, AnturixError::InvalidBounds);
+        }
+        Condition::AssetRace => {
+            require!(price_feed_id_b != [0u8; 32], AnturixError::InvalidSecondFeed);
+            require!(price_feed_id != price_feed_id_b, AnturixError::InvalidSecondFeed);
+
+            // Snapshot start prices from remaining_accounts
+            require!(ctx.remaining_accounts.len() >= 2, AnturixError::MissingPriceAccount);
+
+            let price_a = pyth::parse_price_update(
+                &ctx.remaining_accounts[0],
+                &price_feed_id,
+                &clock,
+            )?;
+            let price_b = pyth::parse_price_update(
+                &ctx.remaining_accounts[1],
+                &price_feed_id_b,
+                &clock,
+            )?;
+
+            start_price_a = price_a.price;
+            start_price_b = price_b.price;
+        }
+    }
 
     let creator_profile = &mut ctx.accounts.creator_profile;
     let duel = &mut ctx.accounts.duel_state;
@@ -38,6 +79,11 @@ pub fn handler(
     duel.expires_at = expires_at;
     duel.bump = ctx.bumps.duel_state;
     duel.escrow_bump = ctx.bumps.escrow;
+    duel.lower_bound = lower_bound;
+    duel.upper_bound = upper_bound;
+    duel.price_feed_id_b = price_feed_id_b;
+    duel.start_price_a = start_price_a;
+    duel.start_price_b = start_price_b;
 
     // Transfer stake to escrow
     system_program::transfer(
@@ -58,6 +104,11 @@ pub fn handler(
     let condition_u8 = match condition {
         Condition::Above => 0u8,
         Condition::Below => 1u8,
+        Condition::Odd => 2u8,
+        Condition::Even => 3u8,
+        Condition::InRange => 4u8,
+        Condition::OutOfRange => 5u8,
+        Condition::AssetRace => 6u8,
     };
 
     emit!(DuelCreated {
@@ -69,6 +120,8 @@ pub fn handler(
         stake_amount,
         target_opponent,
         expires_at,
+        lower_bound,
+        upper_bound,
     });
 
     Ok(())

@@ -30,6 +30,9 @@ pub mod anturix {
         stake_amount: u64,
         target_opponent: Option<Pubkey>,
         expires_at: i64,
+        lower_bound: i64,
+        upper_bound: i64,
+        price_feed_id_b: [u8; 32],
     ) -> Result<()> {
         instructions::create_duel::handler(
             ctx,
@@ -39,6 +42,9 @@ pub mod anturix {
             stake_amount,
             target_opponent,
             expires_at,
+            lower_bound,
+            upper_bound,
+            price_feed_id_b,
         )
     }
 

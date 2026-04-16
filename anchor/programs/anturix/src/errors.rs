@@ -32,4 +32,10 @@ pub enum AnturixError {
     InvalidTargetPrice,
     #[msg("Oracle confidence interval too wide (>5%), price unreliable")]
     PriceConfidenceTooWide,
+    #[msg("Lower bound must be positive and less than upper bound")]
+    InvalidBounds,
+    #[msg("Second price feed required for AssetRace")]
+    InvalidSecondFeed,
+    #[msg("Missing required price update account in remaining_accounts")]
+    MissingPriceAccount,
 }
