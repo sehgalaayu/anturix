@@ -18,6 +18,7 @@ pub struct PythPrice {
     pub price: i64,
     pub conf: u64,
     pub exponent: i32,
+    pub publish_time: i64,
 }
 
 /// Parse and validate a Pyth PriceUpdateV2 account without the SDK.
@@ -107,5 +108,6 @@ pub fn parse_price_update(
         price,
         conf,
         exponent,
+        publish_time,
     })
 }
