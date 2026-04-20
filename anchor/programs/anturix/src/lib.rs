@@ -10,7 +10,7 @@ pub mod pyth;
 pub mod state;
 
 use instructions::*;
-use state::Condition;
+use state::{Condition, Side, Visibility};
 
 declare_id!("HiErQ1fFikbgqEMjDD58trMaZ8XHGtSmztEJu31UZA9");
 
@@ -22,50 +22,53 @@ pub mod anturix {
         instructions::init_profile::handler(ctx)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_duel(
         ctx: Context<CreateDuel>,
-        price_feed_id: [u8; 32],
-        target_price: i64,
-        condition: Condition,
+        visibility: Visibility,
+        creator_side: Side,
         stake_amount: u64,
-        target_opponent: Option<Pubkey>,
-        expires_at: i64,
+        condition: Condition,
+        price_feed_id: [u8; 32],
+        price_feed_id_b: [u8; 32],
+        target_price: i64,
         lower_bound: i64,
         upper_bound: i64,
-        price_feed_id_b: [u8; 32],
+        expires_at: i64,
     ) -> Result<()> {
         instructions::create_duel::handler(
             ctx,
-            price_feed_id,
-            target_price,
-            condition,
+            visibility,
+            creator_side,
             stake_amount,
-            target_opponent,
-            expires_at,
+            condition,
+            price_feed_id,
+            price_feed_id_b,
+            target_price,
             lower_bound,
             upper_bound,
-            price_feed_id_b,
+            expires_at,
         )
     }
 
-    pub fn accept_duel(ctx: Context<AcceptDuel>) -> Result<()> {
-        instructions::accept_duel::handler(ctx)
+    pub fn join_pool(ctx: Context<JoinPool>, side: Side, amount: u64) -> Result<()> {
+        instructions::join_pool::handler(ctx, side, amount)
     }
 
     pub fn resolve_duel(ctx: Context<ResolveDuel>) -> Result<()> {
         instructions::resolve_duel::handler(ctx)
     }
 
-    pub fn claim_prize(ctx: Context<ClaimPrize>) -> Result<()> {
-        instructions::claim_prize::handler(ctx)
+    pub fn claim_share(ctx: Context<ClaimShare>, side: Side) -> Result<()> {
+        instructions::claim_share::handler(ctx, side)
+    }
+
+    pub fn claim_refund(ctx: Context<ClaimRefund>, side: Side) -> Result<()> {
+        instructions::claim_refund::handler(ctx, side)
     }
 
     pub fn cancel_duel(ctx: Context<CancelDuel>) -> Result<()> {
         instructions::cancel_duel::handler(ctx)
-    }
-
-    pub fn expire_cancel_duel(ctx: Context<ExpireCancelDuel>) -> Result<()> {
-        instructions::expire_cancel_duel::handler(ctx)
     }
 
     pub fn force_cancel_duel(ctx: Context<ForceCancelDuel>) -> Result<()> {
