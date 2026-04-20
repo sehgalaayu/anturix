@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anchor_lang::{InstructionData, ToAccountMetas, AccountDeserialize};
 pub use litesvm::LiteSVM;
 use solana_sdk::{
@@ -7,18 +9,15 @@ use solana_sdk::{
     instruction::{Instruction, AccountMeta},
     account::Account,
     clock::Clock,
-    sysvar,
 };
 
-// Re-export anchor Pubkey for comparisons in tests
 pub use anchor_lang::prelude::Pubkey as AnchorPubkey;
+pub use anturix::state::{Condition, Side, Visibility};
 
 // ── Pyth constants ──
 
-/// Pyth Receiver program ID (must match pyth.rs)
 pub const PYTH_RECEIVER_ID: Pubkey = solana_sdk::pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
 
-/// SOL/USD feed ID
 pub const SOL_USD_FEED: [u8; 32] = [
     0xef, 0x0d, 0x8b, 0x6f, 0xda, 0x2c, 0xeb, 0xa4,
     0x1d, 0xa1, 0x5d, 0x40, 0x95, 0xd1, 0xda, 0x39,
@@ -26,7 +25,6 @@ pub const SOL_USD_FEED: [u8; 32] = [
     0x0f, 0x4c, 0xfa, 0xc8, 0xc2, 0x80, 0xb5, 0x6d,
 ];
 
-/// BTC/USD feed ID
 pub const BTC_USD_FEED: [u8; 32] = [
     0xe6, 0x2d, 0xf6, 0xc8, 0xb4, 0xa8, 0x5f, 0xe1,
     0xa6, 0x7d, 0xb4, 0x4d, 0xc1, 0x2d, 0xe5, 0xdb,
@@ -34,39 +32,38 @@ pub const BTC_USD_FEED: [u8; 32] = [
     0x8a, 0xfe, 0xdf, 0x0f, 0x4a, 0x41, 0x5b, 0x43,
 ];
 
-/// Convert anchor AccountMetas to solana-sdk AccountMetas
+// ── Pubkey conversion ──
+
+fn ap(pk: &Pubkey) -> AnchorPubkey {
+    AnchorPubkey::new_from_array(pk.to_bytes())
+}
+
+fn sys_id() -> AnchorPubkey {
+    AnchorPubkey::new_from_array([0u8; 32])
+}
+
+pub fn prog_id() -> Pubkey {
+    Pubkey::new_from_array(anturix::id().to_bytes())
+}
+
 pub fn convert_account_metas(metas: Vec<anchor_lang::prelude::AccountMeta>) -> Vec<AccountMeta> {
     metas.into_iter().map(|m| {
         let pubkey = Pubkey::new_from_array(m.pubkey.to_bytes());
         if m.is_writable {
-            if m.is_signer {
-                AccountMeta::new(pubkey, true)
-            } else {
-                AccountMeta::new(pubkey, false)
-            }
-        } else if m.is_signer {
-            AccountMeta::new_readonly(pubkey, true)
+            AccountMeta::new(pubkey, m.is_signer)
         } else {
-            AccountMeta::new_readonly(pubkey, false)
+            AccountMeta::new_readonly(pubkey, m.is_signer)
         }
     }).collect()
 }
 
-/// Build an Instruction from anchor accounts + data, converting types
-fn build_ix<T: ToAccountMetas>(
-    accounts: T,
-    data: Vec<u8>,
-) -> Instruction {
+fn build_ix<T: ToAccountMetas>(accounts: T, data: Vec<u8>) -> Instruction {
     let anchor_metas = accounts.to_account_metas(None);
     Instruction {
         program_id: prog_id(),
         accounts: convert_account_metas(anchor_metas),
         data,
     }
-}
-
-pub fn prog_id() -> Pubkey {
-    Pubkey::new_from_array(anturix::id().to_bytes())
 }
 
 // ── PDA helpers ──
@@ -86,6 +83,17 @@ pub fn escrow_pda(duel_state: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"escrow", duel_state.as_ref()], &prog_id())
 }
 
+pub fn position_pda(duel_state: &Pubkey, owner: &Pubkey, side: Side) -> (Pubkey, u8) {
+    let side_byte: u8 = match side {
+        Side::OptionA => 0,
+        Side::OptionB => 1,
+    };
+    Pubkey::find_program_address(
+        &[b"position", duel_state.as_ref(), owner.as_ref(), &[side_byte]],
+        &prog_id(),
+    )
+}
+
 // ── SVM setup ──
 
 pub fn setup() -> LiteSVM {
@@ -100,10 +108,8 @@ pub fn airdrop(svm: &mut LiteSVM, to: &Pubkey, lamports: u64) {
 }
 
 pub fn fund_user(svm: &mut LiteSVM, user: &Keypair) {
-    airdrop(svm, &user.pubkey(), 10_000_000_000); // 10 SOL
+    airdrop(svm, &user.pubkey(), 100_000_000_000); // 100 SOL
 }
-
-// ── Transaction helpers ──
 
 pub fn send_tx(
     svm: &mut LiteSVM,
@@ -113,9 +119,7 @@ pub fn send_tx(
 ) -> Result<(), String> {
     let blockhash = svm.latest_blockhash();
     let tx = Transaction::new_signed_with_payer(ixs, Some(&payer.pubkey()), signers, blockhash);
-    svm.send_transaction(tx)
-        .map(|_| ())
-        .map_err(|e| format!("{:?}", e))
+    svm.send_transaction(tx).map(|_| ()).map_err(|e| format!("{:?}", e))
 }
 
 pub fn send_tx_expect_err(
@@ -127,19 +131,8 @@ pub fn send_tx_expect_err(
     send_tx(svm, ixs, payer, signers).expect_err("expected error but tx succeeded")
 }
 
-// ── Pubkey conversion ──
+// ── Pyth mock ──
 
-fn ap(pk: &Pubkey) -> AnchorPubkey {
-    AnchorPubkey::new_from_array(pk.to_bytes())
-}
-
-fn sys_id() -> AnchorPubkey {
-    AnchorPubkey::new_from_array([0u8; 32])
-}
-
-// ── Pyth mock helpers ──
-
-/// Build raw bytes for a PriceUpdateV2 account
 pub fn build_mock_price_update(
     feed_id: &[u8; 32],
     price: i64,
@@ -147,34 +140,26 @@ pub fn build_mock_price_update(
     exponent: i32,
     publish_time: i64,
 ) -> Vec<u8> {
-    // SHA256("account:PriceUpdateV2")[..8]
     let discriminator: [u8; 8] = [0x22, 0xf1, 0x23, 0x63, 0x9d, 0x7e, 0xf4, 0xcd];
-    let write_authority = [0u8; 32]; // dummy
-    let verification_level: u8 = 1; // Full
-
-    let prev_publish_time = publish_time - 1;
-    let ema_price: i64 = price;
-    let ema_conf: u64 = conf;
-    let posted_slot: u64 = 100;
+    let write_authority = [0u8; 32];
+    let verification_level: u8 = 1;
 
     let mut data = Vec::with_capacity(128);
-    data.extend_from_slice(&discriminator);        // 8
-    data.extend_from_slice(&write_authority);       // 32
-    data.extend_from_slice(&[verification_level]);  // 1  (offset 40)
-    // PriceFeedMessage starts at offset 41
-    data.extend_from_slice(feed_id);                // 32
-    data.extend_from_slice(&price.to_le_bytes());   // 8
-    data.extend_from_slice(&conf.to_le_bytes());    // 8
-    data.extend_from_slice(&exponent.to_le_bytes()); // 4
-    data.extend_from_slice(&publish_time.to_le_bytes()); // 8
-    data.extend_from_slice(&prev_publish_time.to_le_bytes()); // 8
-    data.extend_from_slice(&ema_price.to_le_bytes()); // 8
-    data.extend_from_slice(&ema_conf.to_le_bytes());  // 8
-    data.extend_from_slice(&posted_slot.to_le_bytes()); // 8
+    data.extend_from_slice(&discriminator);
+    data.extend_from_slice(&write_authority);
+    data.extend_from_slice(&[verification_level]);
+    data.extend_from_slice(feed_id);
+    data.extend_from_slice(&price.to_le_bytes());
+    data.extend_from_slice(&conf.to_le_bytes());
+    data.extend_from_slice(&exponent.to_le_bytes());
+    data.extend_from_slice(&publish_time.to_le_bytes());
+    data.extend_from_slice(&(publish_time - 1).to_le_bytes());
+    data.extend_from_slice(&price.to_le_bytes());
+    data.extend_from_slice(&conf.to_le_bytes());
+    data.extend_from_slice(&100u64.to_le_bytes());
     data
 }
 
-/// Create a mock Pyth price update account in LiteSVM and return its pubkey
 pub fn create_mock_pyth_account(
     svm: &mut LiteSVM,
     feed_id: &[u8; 32],
@@ -186,7 +171,7 @@ pub fn create_mock_pyth_account(
     let data = build_mock_price_update(feed_id, price, conf, exponent, publish_time);
     let key = Keypair::new().pubkey();
     let account = Account {
-        lamports: 1_000_000_000, // enough rent
+        lamports: 1_000_000_000,
         data,
         owner: PYTH_RECEIVER_ID,
         executable: false,
@@ -196,7 +181,6 @@ pub fn create_mock_pyth_account(
     key
 }
 
-/// Set SVM clock to a specific unix timestamp
 pub fn set_clock(svm: &mut LiteSVM, unix_timestamp: i64) {
     let clock = Clock {
         slot: 100,
@@ -208,71 +192,55 @@ pub fn set_clock(svm: &mut LiteSVM, unix_timestamp: i64) {
     svm.set_sysvar(&clock);
 }
 
-// ── Admin keypair ──
-
 pub fn admin_pubkey() -> Pubkey {
-    // Must match ADMIN_PUBKEY in constants.rs
     solana_sdk::pubkey!("8RAViABqHQkdSesxZqqFcWnEYnw5baVN2AQB2Z2CmQgX")
 }
 
 // ── Instruction builders ──
 
 pub fn ix_init_profile(owner: &Pubkey) -> Instruction {
-    let (profile_pda, _) = profile_pda(owner);
+    let (profile, _) = profile_pda(owner);
     build_ix(
         anturix::accounts::InitProfile {
             owner: ap(owner),
-            user_profile: ap(&profile_pda),
+            user_profile: ap(&profile),
             system_program: sys_id(),
         },
         anturix::instruction::InitUserProfile {}.data(),
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn ix_create_duel(
     creator: &Pubkey,
     duel_count: u64,
-    price_feed_id: [u8; 32],
-    target_price: i64,
-    condition: anturix::state::Condition,
+    visibility: Visibility,
+    creator_side: Side,
     stake_amount: u64,
-    target_opponent: Option<Pubkey>,
-    expires_at: i64,
-) -> Instruction {
-    ix_create_duel_full(
-        creator, duel_count, price_feed_id, target_price, condition,
-        stake_amount, target_opponent, expires_at, 0, 0, [0u8; 32], &[],
-    )
-}
-
-pub fn ix_create_duel_full(
-    creator: &Pubkey,
-    duel_count: u64,
+    condition: Condition,
     price_feed_id: [u8; 32],
+    price_feed_id_b: [u8; 32],
     target_price: i64,
-    condition: anturix::state::Condition,
-    stake_amount: u64,
-    target_opponent: Option<Pubkey>,
-    expires_at: i64,
     lower_bound: i64,
     upper_bound: i64,
-    price_feed_id_b: [u8; 32],
-    remaining_accounts: &[Pubkey],
+    expires_at: i64,
+    remaining: &[Pubkey],
 ) -> Instruction {
     let (profile, _) = profile_pda(creator);
     let (duel, _) = duel_pda(creator, duel_count);
     let (escrow, _) = escrow_pda(&duel);
+    let (cpos, _) = position_pda(&duel, creator, creator_side);
 
     let anchor_accounts = anturix::accounts::CreateDuel {
         creator: ap(creator),
         creator_profile: ap(&profile),
         duel_state: ap(&duel),
+        creator_position: ap(&cpos),
         escrow: ap(&escrow),
         system_program: sys_id(),
     };
     let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
-
-    for key in remaining_accounts {
+    for key in remaining {
         metas.push(AccountMeta::new_readonly(*key, false));
     }
 
@@ -280,81 +248,58 @@ pub fn ix_create_duel_full(
         program_id: prog_id(),
         accounts: metas,
         data: anturix::instruction::CreateDuel {
-            price_feed_id,
-            target_price,
-            condition,
+            visibility,
+            creator_side,
             stake_amount,
-            target_opponent: target_opponent.map(|p| ap(&p)),
-            expires_at,
+            condition,
+            price_feed_id,
+            price_feed_id_b,
+            target_price,
             lower_bound,
             upper_bound,
-            price_feed_id_b,
+            expires_at,
         }.data(),
     }
 }
 
-pub fn ix_accept_duel(opponent: &Pubkey, duel_state: &Pubkey) -> Instruction {
-    let (opponent_profile, _) = profile_pda(opponent);
+pub fn ix_join_pool(
+    participant: &Pubkey,
+    duel_state: &Pubkey,
+    side: Side,
+    amount: u64,
+) -> Instruction {
+    let (profile, _) = profile_pda(participant);
     let (escrow, _) = escrow_pda(duel_state);
+    let (pos, _) = position_pda(duel_state, participant, side);
 
     build_ix(
-        anturix::accounts::AcceptDuel {
-            opponent: ap(opponent),
-            opponent_profile: ap(&opponent_profile),
+        anturix::accounts::JoinPool {
+            participant: ap(participant),
+            participant_profile: ap(&profile),
             duel_state: ap(duel_state),
+            participant_position: ap(&pos),
             escrow: ap(&escrow),
             system_program: sys_id(),
         },
-        anturix::instruction::AcceptDuel {}.data(),
+        anturix::instruction::JoinPool { side, amount }.data(),
     )
 }
 
 pub fn ix_resolve_duel(
     resolver: &Pubkey,
     duel_state: &Pubkey,
-    creator: &Pubkey,
-    opponent: &Pubkey,
     price_update: &Pubkey,
+    remaining: &[Pubkey],
 ) -> Instruction {
-    let (creator_profile, _) = profile_pda(creator);
-    let (opponent_profile, _) = profile_pda(opponent);
-
-    build_ix(
-        anturix::accounts::ResolveDuel {
-            resolver: ap(resolver),
-            duel_state: ap(duel_state),
-            price_update: ap(price_update),
-            creator_profile: ap(&creator_profile),
-            opponent_profile: ap(&opponent_profile),
-        },
-        anturix::instruction::ResolveDuel {}.data(),
-    )
-}
-
-pub fn ix_resolve_duel_with_remaining(
-    resolver: &Pubkey,
-    duel_state: &Pubkey,
-    creator: &Pubkey,
-    opponent: &Pubkey,
-    price_update: &Pubkey,
-    remaining_accounts: &[Pubkey],
-) -> Instruction {
-    let (creator_profile, _) = profile_pda(creator);
-    let (opponent_profile, _) = profile_pda(opponent);
-
     let anchor_accounts = anturix::accounts::ResolveDuel {
         resolver: ap(resolver),
         duel_state: ap(duel_state),
         price_update: ap(price_update),
-        creator_profile: ap(&creator_profile),
-        opponent_profile: ap(&opponent_profile),
     };
     let mut metas = convert_account_metas(anchor_accounts.to_account_metas(None));
-
-    for key in remaining_accounts {
+    for key in remaining {
         metas.push(AccountMeta::new_readonly(*key, false));
     }
-
     Instruction {
         program_id: prog_id(),
         accounts: metas,
@@ -362,96 +307,107 @@ pub fn ix_resolve_duel_with_remaining(
     }
 }
 
-pub fn ix_claim_prize(winner: &Pubkey, duel_state: &Pubkey) -> Instruction {
+pub fn ix_claim_share(owner: &Pubkey, duel_state: &Pubkey, side: Side) -> Instruction {
+    let (profile, _) = profile_pda(owner);
     let (escrow, _) = escrow_pda(duel_state);
+    let (pos, _) = position_pda(duel_state, owner, side);
 
     build_ix(
-        anturix::accounts::ClaimPrize {
-            winner: ap(winner),
+        anturix::accounts::ClaimShare {
+            owner: ap(owner),
+            owner_profile: ap(&profile),
             duel_state: ap(duel_state),
+            position: ap(&pos),
             escrow: ap(&escrow),
             system_program: sys_id(),
         },
-        anturix::instruction::ClaimPrize {}.data(),
+        anturix::instruction::ClaimShare { side }.data(),
+    )
+}
+
+pub fn ix_claim_refund(owner: &Pubkey, duel_state: &Pubkey, side: Side) -> Instruction {
+    let (escrow, _) = escrow_pda(duel_state);
+    let (pos, _) = position_pda(duel_state, owner, side);
+
+    build_ix(
+        anturix::accounts::ClaimRefund {
+            owner: ap(owner),
+            duel_state: ap(duel_state),
+            position: ap(&pos),
+            escrow: ap(&escrow),
+            system_program: sys_id(),
+        },
+        anturix::instruction::ClaimRefund { side }.data(),
     )
 }
 
 pub fn ix_cancel_duel(creator: &Pubkey, duel_state: &Pubkey) -> Instruction {
-    let (escrow, _) = escrow_pda(duel_state);
-
     build_ix(
         anturix::accounts::CancelDuel {
             creator: ap(creator),
             duel_state: ap(duel_state),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
         },
         anturix::instruction::CancelDuel {}.data(),
     )
 }
 
-pub fn ix_expire_cancel_duel(cranker: &Pubkey, creator: &Pubkey, duel_state: &Pubkey) -> Instruction {
-    let (escrow, _) = escrow_pda(duel_state);
-
-    build_ix(
-        anturix::accounts::ExpireCancelDuel {
-            cranker: ap(cranker),
-            creator: ap(creator),
-            duel_state: ap(duel_state),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
-        },
-        anturix::instruction::ExpireCancelDuel {}.data(),
-    )
-}
-
-pub fn ix_force_cancel_duel(admin: &Pubkey, creator: &Pubkey, opponent: &Pubkey, duel_state: &Pubkey) -> Instruction {
-    let (escrow, _) = escrow_pda(duel_state);
-
+pub fn ix_force_cancel_duel(admin: &Pubkey, duel_state: &Pubkey) -> Instruction {
     build_ix(
         anturix::accounts::ForceCancelDuel {
             admin: ap(admin),
-            creator: ap(creator),
-            opponent: ap(opponent),
             duel_state: ap(duel_state),
-            escrow: ap(&escrow),
-            system_program: sys_id(),
         },
         anturix::instruction::ForceCancelDuel {}.data(),
     )
 }
 
-// ── Account deserialization ──
+// ── Account getters ──
 
-pub fn get_account<T: AccountDeserialize>(
-    svm: &LiteSVM,
-    address: &Pubkey,
-) -> T {
+pub fn get_account<T: AccountDeserialize>(svm: &LiteSVM, address: &Pubkey) -> T {
     let account = svm.get_account(address).expect("account not found");
     T::try_deserialize(&mut &account.data[..]).expect("failed to deserialize")
 }
 
-pub fn to_anchor_pubkey(pk: &Pubkey) -> AnchorPubkey {
-    AnchorPubkey::new_from_array(pk.to_bytes())
+pub fn get_account_opt<T: AccountDeserialize>(svm: &LiteSVM, address: &Pubkey) -> Option<T> {
+    let account = svm.get_account(address)?;
+    if account.data.is_empty() {
+        return None;
+    }
+    T::try_deserialize(&mut &account.data[..]).ok()
 }
 
 pub fn get_balance(svm: &LiteSVM, address: &Pubkey) -> u64 {
-    svm.get_account(address)
-        .map(|a| a.lamports)
-        .unwrap_or(0)
+    svm.get_account(address).map(|a| a.lamports).unwrap_or(0)
+}
+
+pub fn account_exists(svm: &LiteSVM, address: &Pubkey) -> bool {
+    svm.get_account(address).map(|a| !a.data.is_empty()).unwrap_or(false)
 }
 
 // ── Time helpers ──
 
+pub const BASE_TS: i64 = 1_700_000_000;
+
 pub fn future_ts(seconds_from_now: i64) -> i64 {
-    // LiteSVM starts at a fixed clock. Use a large future timestamp.
-    1_700_000_000 + seconds_from_now
+    BASE_TS + seconds_from_now
 }
 
-pub fn past_ts() -> i64 {
-    1_000_000_000
+// ── Test scenario builders ──
+
+pub struct SetupCtx {
+    pub svm: LiteSVM,
+    pub creator: Keypair,
+    pub opponent: Keypair,
 }
 
-pub fn advance_slot(svm: &mut LiteSVM) {
-    svm.expire_blockhash();
+pub fn bootstrap_two_users() -> SetupCtx {
+    let mut svm = setup();
+    set_clock(&mut svm, BASE_TS);
+    let creator = Keypair::new();
+    let opponent = Keypair::new();
+    fund_user(&mut svm, &creator);
+    fund_user(&mut svm, &opponent);
+    send_tx(&mut svm, &[ix_init_profile(&creator.pubkey())], &creator, &[&creator]).unwrap();
+    send_tx(&mut svm, &[ix_init_profile(&opponent.pubkey())], &opponent, &[&opponent]).unwrap();
+    SetupCtx { svm, creator, opponent }
 }
