@@ -1,33 +1,35 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-use crate::state::{UserProfile, DuelState, DuelStatus, Condition};
+use crate::state::{UserProfile, DuelState, DuelStatus, Condition, Visibility, Side, Position};
 use crate::constants::*;
 use crate::errors::AnturixError;
 use crate::events::DuelCreated;
 use crate::pyth;
 
+#[allow(clippy::too_many_arguments)]
 pub fn handler(
     ctx: Context<CreateDuel>,
-    price_feed_id: [u8; 32],
-    target_price: i64,
-    condition: Condition,
+    visibility: Visibility,
+    creator_side: Side,
     stake_amount: u64,
-    target_opponent: Option<Pubkey>,
-    expires_at: i64,
+    condition: Condition,
+    price_feed_id: [u8; 32],
+    price_feed_id_b: [u8; 32],
+    target_price: i64,
     lower_bound: i64,
     upper_bound: i64,
-    price_feed_id_b: [u8; 32],
+    expires_at: i64,
 ) -> Result<()> {
-    require!(stake_amount >= MIN_STAKE, AnturixError::StakeTooLow);
+    require!(stake_amount >= MIN_CREATE_STAKE, AnturixError::StakeTooLow);
 
     let clock = Clock::get()?;
-    require!(expires_at > clock.unix_timestamp, AnturixError::InvalidExpiry);
     require!(
         expires_at >= clock.unix_timestamp.checked_add(MIN_EXPIRY_DURATION).ok_or(AnturixError::Overflow)?,
         AnturixError::InvalidExpiry
     );
 
-    // Per-condition validation
+    require!(price_feed_id != [0u8; 32], AnturixError::InvalidFeedId);
+
     let mut start_price_a: i64 = 0;
     let mut start_price_b: i64 = 0;
 
@@ -35,9 +37,7 @@ pub fn handler(
         Condition::Above | Condition::Below => {
             require!(target_price > 0, AnturixError::InvalidTargetPrice);
         }
-        Condition::Odd | Condition::Even => {
-            // Just needs a feed_id, no target validation
-        }
+        Condition::Odd | Condition::Even => {}
         Condition::InRange | Condition::OutOfRange => {
             require!(lower_bound > 0, AnturixError::InvalidBounds);
             require!(upper_bound > lower_bound, AnturixError::InvalidBounds);
@@ -45,8 +45,6 @@ pub fn handler(
         Condition::AssetRace => {
             require!(price_feed_id_b != [0u8; 32], AnturixError::InvalidSecondFeed);
             require!(price_feed_id != price_feed_id_b, AnturixError::InvalidSecondFeed);
-
-            // Snapshot start prices from remaining_accounts
             require!(ctx.remaining_accounts.len() >= 2, AnturixError::MissingPriceAccount);
 
             let price_a = pyth::parse_price_update(
@@ -69,23 +67,39 @@ pub fn handler(
     let duel = &mut ctx.accounts.duel_state;
 
     duel.creator = ctx.accounts.creator.key();
-    duel.opponent = target_opponent.unwrap_or(Pubkey::default());
+    duel.visibility = visibility;
+    duel.condition = condition;
     duel.price_feed_id = price_feed_id;
+    duel.price_feed_id_b = price_feed_id_b;
     duel.target_price = target_price;
-    duel.condition = condition.clone();
-    duel.stake_amount = stake_amount;
-    duel.status = DuelStatus::Pending;
-    duel.winner = None;
+    duel.lower_bound = lower_bound;
+    duel.upper_bound = upper_bound;
+    duel.start_price_a = start_price_a;
+    duel.start_price_b = start_price_b;
+    duel.creator_side = creator_side;
+    duel.creator_stake = stake_amount;
+    duel.side_a_total = match creator_side {
+        Side::OptionA => stake_amount,
+        Side::OptionB => 0,
+    };
+    duel.side_b_total = match creator_side {
+        Side::OptionA => 0,
+        Side::OptionB => stake_amount,
+    };
+    duel.status = DuelStatus::Open;
+    duel.winner_side = None;
+    duel.oracle_price = 0;
     duel.expires_at = expires_at;
     duel.bump = ctx.bumps.duel_state;
     duel.escrow_bump = ctx.bumps.escrow;
-    duel.lower_bound = lower_bound;
-    duel.upper_bound = upper_bound;
-    duel.price_feed_id_b = price_feed_id_b;
-    duel.start_price_a = start_price_a;
-    duel.start_price_b = start_price_b;
 
-    // Transfer stake to escrow
+    let position = &mut ctx.accounts.creator_position;
+    position.duel = duel.key();
+    position.owner = ctx.accounts.creator.key();
+    position.side = creator_side;
+    position.stake = stake_amount;
+    position.bump = ctx.bumps.creator_position;
+
     system_program::transfer(
         CpiContext::new(
             ctx.accounts.system_program.key(),
@@ -101,33 +115,29 @@ pub fn handler(
         .checked_add(1)
         .ok_or(AnturixError::Overflow)?;
 
-    let condition_u8 = match condition {
-        Condition::Above => 0u8,
-        Condition::Below => 1u8,
-        Condition::Odd => 2u8,
-        Condition::Even => 3u8,
-        Condition::InRange => 4u8,
-        Condition::OutOfRange => 5u8,
-        Condition::AssetRace => 6u8,
-    };
-
     emit!(DuelCreated {
         duel: duel.key(),
         creator: ctx.accounts.creator.key(),
+        visibility: visibility as u8,
+        creator_side: creator_side as u8,
+        condition: condition as u8,
         price_feed_id,
+        price_feed_id_b,
         target_price,
-        condition: condition_u8,
-        stake_amount,
-        target_opponent,
-        expires_at,
         lower_bound,
         upper_bound,
+        stake_amount,
+        expires_at,
     });
 
     Ok(())
 }
 
 #[derive(Accounts)]
+#[instruction(
+    visibility: Visibility,
+    creator_side: Side,
+)]
 pub struct CreateDuel<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -147,6 +157,20 @@ pub struct CreateDuel<'info> {
         bump,
     )]
     pub duel_state: Account<'info, DuelState>,
+
+    #[account(
+        init,
+        payer = creator,
+        space = Position::SIZE,
+        seeds = [
+            SEED_POSITION,
+            duel_state.key().as_ref(),
+            creator.key().as_ref(),
+            &[creator_side as u8],
+        ],
+        bump,
+    )]
+    pub creator_position: Account<'info, Position>,
 
     /// CHECK: escrow PDA — system-owned, holds stake SOL
     #[account(
