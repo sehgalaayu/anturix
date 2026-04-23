@@ -7,7 +7,7 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 import { Buffer } from "buffer/";
-import idl from "../../anchor/target/idl/anturix.json";
+import idl from "@/idl/anturix.json";
 const DEVNET_RPC_URL =
   import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const sharedConnection = new Connection(DEVNET_RPC_URL, {
