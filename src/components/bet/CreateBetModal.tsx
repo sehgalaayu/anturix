@@ -176,6 +176,11 @@ export function CreateBetModal({
       );
 
 
+      localStorage.setItem(
+        `userSide_${duelId}`,
+        position === "up" ? "OPTION_A" : "OPTION_B"
+      );
+
       storeRecentDuel(
         duelId,
         title.trim() || "Untitled duel",

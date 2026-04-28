@@ -1,6 +1,6 @@
 {
-  "buildCommand": "NODE_OPTIONS=--max-old-space-size=6144 bun run build",
-  "outputDirectory": "dist/client",
+  "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 bun run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",

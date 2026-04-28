@@ -41,5 +41,28 @@ export default defineConfig({
         "@solana-program/token",
       ],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split Privy into its own chunk
+            privy: ["@privy-io/react-auth"],
+            // Split Solana into its own chunk
+            solana: ["@solana/web3.js"],
+            // Split Anchor into its own chunk
+            anchor: ["@coral-xyz/anchor"],
+            // Split React into its own chunk
+            "react-vendor": ["react", "react-dom"],
+            // Split router into its own chunk
+            router: ["@tanstack/react-router"],
+          },
+        },
+      },
+      // Increase chunk size warning limit
+      chunkSizeWarningLimit: 2000,
+      minify: "esbuild", // faster than terser, less memory
+      sourcemap: false, // disable sourcemaps for prod build to save memory
+      target: "esnext", // modern target, less transformation needed
+    },
   },
 });
