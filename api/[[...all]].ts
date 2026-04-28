@@ -1,3 +1,4 @@
+// @ts-ignore
 import server from "../dist/server/server.js";
 
 function toBodyText(value: unknown): string {

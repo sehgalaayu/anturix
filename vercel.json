@@ -1,10 +1,14 @@
 {
   "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 bun run build",
-  "outputDirectory": "dist",
+  "outputDirectory": "dist/client",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!assets/|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.css|.*\\.js).*)$",
+      "destination": "/api/[[...all]]"
     }
   ]
 }
