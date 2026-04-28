@@ -9,7 +9,7 @@
     "build:dev": "NODE_OPTIONS='--max-old-space-size=4096' vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "start": "node dist/server/node.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
