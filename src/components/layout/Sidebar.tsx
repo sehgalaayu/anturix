@@ -52,6 +52,34 @@ export function Sidebar() {
           );
         })}
 
+        <div className="pt-4 mt-4 border-t border-sidebar-border space-y-2">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4 px-2">
+            Public Arena
+          </p>
+          <Link
+            to="/arena"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+              location.pathname === '/arena' 
+                ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]' 
+                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent'
+            }`}
+          >
+            <Globe className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="text-[10px] font-black uppercase tracking-widest">Explore Markets</span>}
+          </Link>
+          <Link
+            to="/"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+              location.pathname === '/' 
+                ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]' 
+                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent'
+            }`}
+          >
+            <Swords className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="text-[10px] font-black uppercase tracking-widest">Private Duels</span>}
+          </Link>
+        </div>
+
         <div className="pt-4 mt-4 border-t border-sidebar-border">
           <Link
             to="/settings"

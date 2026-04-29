@@ -1,5 +1,5 @@
 import { Bell, Plus, Search } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WalletDropdown } from '@/components/wallet/WalletDropdown';
@@ -16,11 +16,11 @@ const CATEGORIES = [
   {
     id: 'crypto',
     number: '1.',
-    label: 'Crypto Duels & SocialFi',
+    label: 'Public Arena',
     subtitle: 'PHASE 1 — ACTIVE',
     status: 'active',
     items: [
-      { to: '/arena', label: 'PUBLIC ARENA', icon: Globe },
+      { to: '/arena', label: 'EXPLORE MARKETS', icon: Globe },
       { to: '/', label: 'PRIVATE DUELS', icon: Swords },
     ]
   },
@@ -67,6 +67,7 @@ const CATEGORIES = [
 export function Navbar() {
   const { authenticated } = useAuth();
   const [betModalOpen, setBetModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -83,7 +84,7 @@ export function Navbar() {
               <div key={cat.id} className="relative group h-full flex items-center px-3 min-w-0">
                 <div
                   className={`flex flex-col justify-center cursor-pointer transition-all min-w-0 ${cat.status === 'soon' ? 'opacity-50 grayscale-[0.8] cursor-not-allowed' : 'hover:text-primary'}`}
-                  onClick={cat.status === 'soon' ? () => toast(cat.toastMessage) : undefined}
+                  onClick={cat.status === 'soon' ? () => toast(cat.toastMessage) : (cat.id === 'crypto' ? () => navigate({ to: '/arena' }) : undefined)}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-[10px] font-black text-muted-foreground shrink-0">{cat.number}</span>

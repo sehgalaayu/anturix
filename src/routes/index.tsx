@@ -64,9 +64,9 @@ function LandingPage() {
             className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto font-medium hero-fade-up"
             style={{ animationDelay: "240ms" }}
           >
-            No public listing. No noise. Just pure 1v1 high-stakes duels on
-            Solana. Create a duel, lock your SOL, and share the invite link with
-            your opponent.
+            The permissionless prediction market protocol on Solana.
+            Create any market, back your prediction with SOL, 
+            and let the oracle decide.
           </p>
         </div>
 
