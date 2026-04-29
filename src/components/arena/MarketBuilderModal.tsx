@@ -88,7 +88,7 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-foreground">{getStepTitle()}</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8">
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="relative">
@@ -96,19 +96,19 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
                 <input
                   type="text"
                   placeholder="Search assets (SOL, AAPL, Gold...)"
-                  className="w-full h-12 pl-10 pr-4 rounded-xl bg-muted/30 border border-border/30 text-sm focus:outline-none focus:border-primary/40 transition-all"
+                  className="w-full h-12 pl-10 pr-4 rounded-xl bg-muted/30 border border-border/30 text-base sm:text-sm focus:outline-none focus:border-primary/40 transition-all"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="grid grid-cols-1 gap-2 max-h-[250px] sm:max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {filteredAssets.map((asset) => (
                   <button
                     key={asset.id}
                     onClick={() => setSelectedAsset(asset)}
                     className={cn(
-                      "flex items-center justify-between p-4 rounded-2xl border transition-all group",
+                      "flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all group",
                       selectedAsset?.id === asset.id 
                         ? "bg-primary/10 border-primary shadow-[0_0_20px_rgba(0,255,255,0.1)]" 
                         : "bg-muted/10 border-border/30 hover:border-border/60"
@@ -131,7 +131,7 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
               </div>
 
               {selectedAsset && (
-                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-3">
+                <div className="p-3 sm:p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center gap-3">
                   <Info className="w-4 h-4 text-primary shrink-0" />
                   <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">
                     Category auto-detected: {selectedAsset.category === 'CRYPTO' ? '🪙' : selectedAsset.category === 'TRADFI' ? '📈' : '🏅'} {selectedAsset.category}
@@ -142,21 +142,21 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
           )}
 
           {step === 2 && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   onClick={() => setCondition('ABOVE')}
                   className={cn(
-                    "flex flex-col items-center gap-4 p-8 rounded-3xl border transition-all",
+                    "flex sm:flex-col items-center gap-4 p-5 sm:p-8 rounded-3xl border transition-all text-left sm:text-center",
                     condition === 'ABOVE'
                       ? "bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,255,255,0.2)]"
                       : "bg-muted/10 border-border/30 opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
                   )}
                 >
-                  <div className={cn("p-4 rounded-2xl bg-success/20 text-success border border-success/30", condition === 'ABOVE' && "bg-primary/20 text-primary border-primary/30")}>
-                    <TrendingUp className="w-8 h-8" />
+                  <div className={cn("p-3 sm:p-4 rounded-2xl bg-success/20 text-success border border-success/30 shrink-0", condition === 'ABOVE' && "bg-primary/20 text-primary border-primary/30")}>
+                    <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
-                  <div className="text-center">
+                  <div>
                     <p className="font-black text-sm uppercase tracking-widest">ABOVE</p>
                     <p className="text-[10px] text-muted-foreground mt-1">Price goes higher than target</p>
                   </div>
@@ -165,16 +165,16 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
                 <button
                   onClick={() => setCondition('BELOW')}
                   className={cn(
-                    "flex flex-col items-center gap-4 p-8 rounded-3xl border transition-all",
+                    "flex sm:flex-col items-center gap-4 p-5 sm:p-8 rounded-3xl border transition-all text-left sm:text-center",
                     condition === 'BELOW'
                       ? "bg-primary/10 border-primary shadow-[0_0_30px_rgba(0,255,255,0.2)]"
                       : "bg-muted/10 border-border/30 opacity-60 grayscale hover:grayscale-0 hover:opacity-100"
                   )}
                 >
-                  <div className={cn("p-4 rounded-2xl bg-destructive/20 text-destructive border border-destructive/30", condition === 'BELOW' && "bg-primary/20 text-primary border-primary/30")}>
-                    <TrendingDown className="w-8 h-8" />
+                  <div className={cn("p-3 sm:p-4 rounded-2xl bg-destructive/20 text-destructive border border-destructive/30 shrink-0", condition === 'BELOW' && "bg-primary/20 text-primary border-primary/30")}>
+                    <TrendingDown className="w-6 h-6 sm:w-8 sm:h-8" />
                   </div>
-                  <div className="text-center">
+                  <div>
                     <p className="font-black text-sm uppercase tracking-widest">BELOW</p>
                     <p className="text-[10px] text-muted-foreground mt-1">Price goes lower than target</p>
                   </div>
@@ -190,7 +190,7 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-black">$</span>
                   <input
-                    type="text"
+                    type="number"
                     placeholder="160.00"
                     className="w-full h-14 pl-8 pr-4 rounded-2xl bg-muted/30 border border-border/30 text-lg font-black focus:outline-none focus:border-primary/40 transition-all"
                     value={targetPrice}
@@ -205,7 +205,7 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
                   <CalendarIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     type="datetime-local"
-                    className="w-full h-14 pl-12 pr-4 rounded-2xl bg-muted/30 border border-border/30 text-sm font-bold focus:outline-none focus:border-primary/40 transition-all color-scheme-dark"
+                    className="w-full h-14 pl-12 pr-4 rounded-2xl bg-muted/30 border border-border/30 text-base sm:text-sm font-bold focus:outline-none focus:border-primary/40 transition-all color-scheme-dark"
                     value={expiry}
                     onChange={(e) => setExpiry(e.target.value)}
                   />
@@ -216,9 +216,9 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
         </div>
 
         {/* Live Preview Area */}
-        <div className="px-8 py-6 bg-muted/20 border-t border-border/30">
+        <div className="px-5 sm:px-8 py-5 sm:py-6 bg-muted/20 border-t border-border/30">
           <div className={cn(
-            "p-5 rounded-2xl border transition-all",
+            "p-4 sm:p-5 rounded-2xl border transition-all",
             step === 3 ? "bg-card border-primary/50 shadow-[0_0_30px_rgba(0,255,255,0.1)]" : "bg-muted/30 border-border/30"
           )}>
             <div className="flex items-center justify-between mb-3">
@@ -253,7 +253,7 @@ export function MarketBuilderModal({ open, onClose }: MarketBuilderModalProps) {
         </div>
 
         {/* Footer Actions */}
-        <div className="px-8 py-6 flex items-center gap-3">
+        <div className="px-5 sm:px-8 py-5 sm:py-6 flex items-center gap-3">
           {step > 1 && (
             <Button
               variant="outline"

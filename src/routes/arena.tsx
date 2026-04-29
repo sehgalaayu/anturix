@@ -125,15 +125,15 @@ function ArenaPage() {
         
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 text-primary">
-              <Globe className="w-5 h-5" />
+              <Globe className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-[0.3em]">Public Arena</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-black font-heading tracking-tighter italic">
+            <h1 className="text-3xl sm:text-5xl font-black font-heading tracking-tighter italic leading-none">
               🌍 EXPLORE MARKETS
             </h1>
-            <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest opacity-60">
+            <p className="text-muted-foreground text-[10px] sm:text-sm font-bold uppercase tracking-widest opacity-60 leading-relaxed">
               100% permissionless · User-generated predictions · Powered by Solana
             </p>
           </div>
@@ -141,7 +141,7 @@ function ArenaPage() {
           <Button 
             variant="cyan"
             size="lg"
-            className="h-14 px-8 font-black uppercase tracking-widest bg-primary text-black hover:bg-primary/90 glow-cyan cyber-corners group"
+            className="h-14 md:h-16 px-8 font-black uppercase tracking-widest bg-primary text-black hover:bg-primary/90 glow-cyan cyber-corners group w-full md:w-auto"
             onClick={() => setIsBuilderOpen(true)}
           >
             <Plus className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90" />

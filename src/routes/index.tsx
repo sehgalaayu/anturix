@@ -50,7 +50,7 @@ function LandingPage() {
           </div>
 
           <h1
-            className="text-4xl sm:text-6xl lg:text-7xl font-black font-heading tracking-tighter italic leading-tight hero-fade-up"
+            className="text-4xl sm:text-6xl lg:text-7xl font-black font-heading tracking-tighter italic leading-[1.1] hero-fade-up"
             style={{ animationDelay: "150ms" }}
           >
             BACK YOUR WORDS.
@@ -61,7 +61,7 @@ function LandingPage() {
           </h1>
 
           <p
-            className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto font-medium hero-fade-up"
+            className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto font-medium leading-relaxed hero-fade-up"
             style={{ animationDelay: "240ms" }}
           >
             The permissionless prediction market protocol on Solana.
@@ -72,13 +72,13 @@ function LandingPage() {
 
         {/* Action Buttons */}
         <div
-          className="hero-fade-up relative z-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
+          className="hero-fade-up relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 sm:gap-4 w-full sm:w-auto px-4 sm:px-0"
           style={{ animationDelay: "320ms" }}
         >
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             size="lg"
-            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow"
+            className="h-14 sm:h-20 px-8 sm:px-12 text-lg sm:text-2xl font-black tracking-[0.1em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow w-full sm:w-auto"
           >
             CREATE 1v1 DUEL 🔥
           </Button>
@@ -86,7 +86,7 @@ function LandingPage() {
             onClick={() => setIsCoinFlipOpen(true)}
             size="lg"
             variant="outline"
-            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)]"
+            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)] w-full sm:w-auto"
           >
             <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-primary mr-2" />
             FAST COIN FLIP
