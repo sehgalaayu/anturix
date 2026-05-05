@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { CreateBetModal } from "@/components/bet/CreateBetModal";
 import { CoinFlipModal } from "@/components/CoinFlipModal";
-import { Swords, Zap, Share2, Shield, ArrowRight, History } from "lucide-react";
+import { Swords, Zap, Share2, Shield, ArrowRight, History, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -77,7 +77,7 @@ function LandingPage() {
           <Button
             onClick={() => setIsCreateModalOpen(true)}
             size="lg"
-            className="h-14 sm:h-20 px-6 sm:px-8 text-sm sm:text-lg font-black tracking-[0.04em] uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow w-full sm:flex-[1.35] sm:min-w-[220px] sm:max-w-none overflow-hidden justify-center"
+            className="h-14 sm:h-20 px-6 sm:px-10 flex items-center justify-center text-base sm:text-lg font-black tracking-[0.05em] leading-none uppercase bg-gradient-to-r from-primary to-accent text-black hover:scale-[1.02] transition-transform glow-cyan cyber-corners cta-pulse-glow w-full sm:flex-[1.35] sm:min-w-[220px] overflow-hidden box-border"
           >
             CREATE A PRIVATE DUEL
           </Button>
@@ -85,9 +85,9 @@ function LandingPage() {
             onClick={() => setIsCoinFlipOpen(true)}
             size="lg"
             variant="outline"
-            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px]"
+            className="h-14 sm:h-20 px-6 sm:px-10 flex items-center justify-center gap-2.5 text-base sm:text-lg font-black tracking-[0.05em] leading-none uppercase bg-background/80 border-2 border-primary/60 text-primary hover:bg-primary/10 hover:border-primary hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(0,255,255,0.15)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px] box-border"
           >
-            <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-primary mr-2" />
+            <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-primary shrink-0" />
             FAST COIN FLIP
           </Button>
           <Button
@@ -98,10 +98,10 @@ function LandingPage() {
             }
             size="lg"
             variant="outline"
-            className="h-14 sm:h-20 px-6 sm:px-10 text-base sm:text-xl font-black tracking-[0.1em] uppercase bg-background/80 border-2 border-amber-400/80 text-amber-300 hover:bg-amber-400/10 hover:border-amber-300 hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(251,191,36,0.16)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px]"
+            className="h-14 sm:h-20 px-6 sm:px-10 flex items-center justify-center gap-2.5 text-base sm:text-lg font-black tracking-[0.05em] leading-none uppercase bg-background/80 border-2 border-amber-400/80 text-amber-300 hover:bg-amber-400/10 hover:border-amber-300 hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(251,191,36,0.16)] w-full sm:flex-1 sm:max-w-[280px] sm:min-w-[160px] box-border"
           >
-            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 mr-2" />
-            🔒 EXPERT LOCK
+            <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 shrink-0" />
+            EXPERT LOCK
           </Button>
         </div>
 
