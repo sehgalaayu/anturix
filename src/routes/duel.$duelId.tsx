@@ -80,9 +80,20 @@ function DuelPage() {
     try {
       const account = await getDuelAccount(solanaWallet, duelId);
       setDuel(account);
-      if (account?.stakeAmount) {
-        const stake = Number(account.stakeAmount.toString()) / 1e9;
-        setJoinAmount((prev) => (prev ? prev : stake.toString()));
+      // Pre-fill join amount from any of the possible stake fields
+      const stakeValue =
+        account?.stakeAmount ?? account?.creatorStake ?? account?.creator_stake;
+      if (stakeValue) {
+        const stake = Number(stakeValue.toString()) / 1e9;
+        // For private duels, always force the exact stake amount
+        const isPrivate = !!(
+          account?.mode?.private || account?.visibility?.private
+        );
+        if (isPrivate) {
+          setJoinAmount(stake.toFixed(4));
+        } else {
+          setJoinAmount((prev) => (prev ? prev : stake.toString()));
+        }
       }
 
       if (account && walletAddress) {
