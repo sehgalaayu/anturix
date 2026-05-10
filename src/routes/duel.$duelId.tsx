@@ -133,7 +133,7 @@ function DuelPage() {
   // --- DERIVED STATE (Moved up for scope) ---
   const statusObj = duel?.status ?? {};
   const isLive = !!statusObj.active || !!statusObj.open;
-  const isPending = !!statusObj.pending || !!statusObj.open;
+  const isPending = !!statusObj.pending && !isLive;
   const isCancelled = !!statusObj.cancelled;
   const isResolved = !!statusObj.resolved || !!statusObj.claimed || isCancelled;
 
