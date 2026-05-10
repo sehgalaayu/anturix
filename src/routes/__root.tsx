@@ -116,12 +116,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  // IMPORTANT: For Google/Twitter login to work on production,
+  // add these redirect URIs in Privy dashboard:
+  // https://anturix.onrender.com
+  // http://localhost:8080
+  // Without this, social login will fail on deployed URL
+  // Go to: privy.io dashboard → your app → Allowed redirect URIs
+
   return (
     <ThemeProvider>
       <PrivyProvider
         appId={import.meta.env.VITE_PRIVY_APP_ID || ""}
         config={{
-          loginMethods: ["wallet", "email", "google", "twitter"],
+          loginMethods: ["email", "google", "twitter", "wallet"],
+          appearance: {
+            showWalletLoginFirst: false,
+          },
           embeddedWallets: {
             createOnLogin: "users-without-wallets",
           },

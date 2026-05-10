@@ -129,7 +129,7 @@ function DuelPage() {
       storeRecentDuel(duelId, duel.title, state);
     }
   }, [duelId, duel?.status, duel?.title]);
-  
+
   // --- DERIVED STATE (Moved up for scope) ---
   const statusObj = duel?.status ?? {};
   const isLive = !!statusObj.active || !!statusObj.open;
@@ -137,33 +137,79 @@ function DuelPage() {
   const isCancelled = !!statusObj.cancelled;
   const isResolved = !!statusObj.resolved || !!statusObj.claimed || isCancelled;
 
-  const isPublicArena = !!(duel?.mode?.publicArena || duel?.visibility?.public || duel?.visibility?.Public);
-  const poolUp = Number((duel?.poolUpTotal ?? duel?.sideATotal ?? duel?.side_a_total)?.toString() || "0") / 1e9;
-  const poolDown = Number((duel?.poolDownTotal ?? duel?.sideBTotal ?? duel?.side_b_total)?.toString() || "0") / 1e9;
+  const isPublicArena = !!(
+    duel?.mode?.publicArena ||
+    duel?.visibility?.public ||
+    duel?.visibility?.Public
+  );
+  const poolUp =
+    Number(
+      (
+        duel?.poolUpTotal ??
+        duel?.sideATotal ??
+        duel?.side_a_total
+      )?.toString() || "0",
+    ) / 1e9;
+  const poolDown =
+    Number(
+      (
+        duel?.poolDownTotal ??
+        duel?.sideBTotal ??
+        duel?.side_b_total
+      )?.toString() || "0",
+    ) / 1e9;
   const totalPool = poolUp + poolDown;
 
-  const creatorSide = !!(duel?.creatorSide?.up || duel?.creatorSide?.optionA || duel?.creatorSide?.OptionA || duel?.creator_side?.optionA || duel?.creator_side?.OptionA) ? "up" : "down";
+  const creatorSide = !!(
+    duel?.creatorSide?.up ||
+    duel?.creatorSide?.optionA ||
+    duel?.creatorSide?.OptionA ||
+    duel?.creator_side?.optionA ||
+    duel?.creator_side?.OptionA
+  )
+    ? "up"
+    : "down";
   const winner = duel?.winner ? duel.winner.toString() : null;
   const creator = duel?.creator?.toString() ?? "";
   const opponent =
-    (duel?.opponent ?? duel?.targetOpponent ?? duel?.target_opponent)?.toString() ??
-    "11111111111111111111111111111111";
-  
+    (
+      duel?.opponent ??
+      duel?.targetOpponent ??
+      duel?.target_opponent
+    )?.toString() ?? "11111111111111111111111111111111";
+
   const stakeLamports =
-    typeof (duel?.stakeAmount ?? duel?.creatorStake ?? duel?.creator_stake)?.toString === "function"
-      ? Number((duel?.stakeAmount ?? duel?.creatorStake ?? duel?.creator_stake)?.toString() || "0")
-      : Number((duel?.stakeAmount ?? duel?.creatorStake ?? duel?.creator_stake) || 0);
-  
+    typeof (duel?.stakeAmount ?? duel?.creatorStake ?? duel?.creator_stake)
+      ?.toString === "function"
+      ? Number(
+          (
+            duel?.stakeAmount ??
+            duel?.creatorStake ??
+            duel?.creator_stake
+          )?.toString() || "0",
+        )
+      : Number(
+          (duel?.stakeAmount ?? duel?.creatorStake ?? duel?.creator_stake) || 0,
+        );
+
   const hasOpponent =
     opponent !== "11111111111111111111111111111111" ||
     totalPool > Number(stakeLamports / 1e9);
 
   const prizePoolSol = isPublicArena ? totalPool : (stakeLamports / 1e9) * 2;
-  const winningSide = !!(duel?.winningSide?.up || duel?.winningSide?.optionA || duel?.winningSide?.OptionA || duel?.winner_side?.optionA || duel?.winner_side?.OptionA) ? "up" : "down";
-  
+  const winningSide = !!(
+    duel?.winningSide?.up ||
+    duel?.winningSide?.optionA ||
+    duel?.winningSide?.OptionA ||
+    duel?.winner_side?.optionA ||
+    duel?.winner_side?.OptionA
+  )
+    ? "up"
+    : "down";
+
   const isCreator =
     solanaWallet && duel?.creator?.toString() === solanaWallet.address;
-  
+
   // --- HANDLERS ---
 
   const handleJoin = async () => {
@@ -179,10 +225,7 @@ function DuelPage() {
       return;
     }
 
-    if (
-      !isPublicArena &&
-      duel.creator?.toString() === solanaWallet.address
-    ) {
+    if (!isPublicArena && duel.creator?.toString() === solanaWallet.address) {
       toast.error("You can't join your own duel");
       return;
     }
@@ -194,10 +237,12 @@ function DuelPage() {
         toast.error("You must take the opposite side in this duel");
         return;
       }
-      
+
       const stakeSol = stakeLamports / 1e9;
       if (Math.abs(parsedJoinAmount - stakeSol) > 0.0001) {
-        toast.error(`You must match the exact stake: ${stakeSol.toFixed(4)} SOL`);
+        toast.error(
+          `You must match the exact stake: ${stakeSol.toFixed(4)} SOL`,
+        );
         return;
       }
 
@@ -211,7 +256,10 @@ function DuelPage() {
     setJoining(true);
     try {
       await joinDuel(solanaWallet, duelId, joinSide, parsedJoinAmount);
-      localStorage.setItem(`userSide_${duelId}`, joinSide === "up" ? "OPTION_A" : "OPTION_B");
+      localStorage.setItem(
+        `userSide_${duelId}`,
+        joinSide === "up" ? "OPTION_A" : "OPTION_B",
+      );
       toast.success("Joined arena successfully! 🔥");
       fetchDuel();
     } catch (e: any) {
@@ -238,12 +286,15 @@ function DuelPage() {
     try {
       toast.info("Step 1: Cancelling duel...");
       await cancelDuel(solanaWallet, duelId);
-      
+
       toast.info("Step 2: Claiming refund...");
-      const side = localStorage.getItem(`userSide_${duelId}`) as "OPTION_A" | "OPTION_B" | null;
+      const side = localStorage.getItem(`userSide_${duelId}`) as
+        | "OPTION_A"
+        | "OPTION_B"
+        | null;
       // Fallback to creator side if not found in storage (likely the creator)
-      let claimSide: "up" | "down" = side === "OPTION_B" ? "down" : "up"; 
-      
+      let claimSide: "up" | "down" = side === "OPTION_B" ? "down" : "up";
+
       // If we are the creator and it's not in storage, use creatorSide
       if (!side && isCreator) {
         claimSide = creatorSide;
@@ -449,7 +500,7 @@ function DuelPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-2xl mx-auto space-y-6 px-4 py-8">
+      <div className="w-full px-6 py-6 max-w-4xl mx-auto space-y-6">
         <Card className="glass-card p-6 sm:p-8 border-gradient-cyan-magenta cyber-corners relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             {isPublicArena ? (
@@ -565,112 +616,120 @@ function DuelPage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8 px-4 sm:px-12 bg-muted/20 rounded-3xl border border-border/50 mt-4">
-              {/* Creator Side */}
-              <div className="flex flex-col items-center gap-3 flex-1">
-                <div className="relative">
-                  <div
-                    className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-lg ${creatorSide === "up" ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}
-                  >
-                    <span
-                      className={`text-3xl font-black ${creatorSide === "up" ? "text-emerald-500" : "text-rose-500"}`}
-                    >
-                      {creatorSide === "up" ? "▲" : "▼"}
-                    </span>
-                  </div>
-                  {winner === duel.creator.toString() && (
-                    <div className="absolute -top-3 -right-3 bg-yellow-400 p-1.5 rounded-full shadow-lg">
-                      <Trophy className="w-4 h-4 text-black" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-left">
-                  <p className="text-[10px] uppercase tracking-widest text-primary font-black">
-                    Your Potential Payout
-                  </p>
-                  <p className="text-lg font-black text-foreground mt-1">
-                    {!isPublicArena || duel.visibility?.private || duel.visibility?.Private || duel.mode?.private || duel.mode?.Private ? (
-                      <span className="text-primary">
-                        2.00x · {((stakeLamports * 2) / 1e9).toFixed(4)} SOL potential payout
-                      </span>
-                    ) : (
-                      <>
-                        {isPublicArena && (
-                          <>
-                            {entryQuote.payoutSol > 0 ? (
-                              `${entryQuote.payoutSol.toFixed(4)} SOL estimated`
-                            ) : (
-                              "Awaiting opponents..."
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </p>
-                  {isPublicArena && entryQuote.odds > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Locked Odds: {entryQuote.odds.toFixed(2)}x at entry
-                    </p>
-                  )}
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                    Creator ({creatorSide.toUpperCase()})
-                  </p>
-                  <p className="text-xs font-bold text-foreground">
-                    {shortAddress(creator)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-4xl sm:text-5xl font-black italic bg-gradient-to-r from-primary via-white to-accent bg-clip-text text-transparent vs-pulse-glow">
-                ⚔️ VS ⚔️
-              </div>
-
-              {/* Opponent Side */}
-              <div className="flex flex-col items-center gap-3 flex-1">
-                <div className="relative">
-                  {hasOpponent ? (
+            {/* VS Section - Full width with improved avatars */}
+            <div className="bg-muted/20 rounded-2xl p-8 mb-6 border border-border/50">
+              <div className="flex items-center justify-between w-full gap-4 sm:gap-8">
+                {/* Creator side - LEFT */}
+                <div className="flex flex-col items-center gap-3 flex-1">
+                  <div className="relative">
                     <div
-                      className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center overflow-hidden shadow-lg ${creatorSide === "down" ? "bg-emerald-500/10 border-emerald-500/40" : "bg-rose-500/10 border-rose-500/40"}`}
+                      className={`w-16 h-16 rounded-full bg-gradient-to-br flex items-center justify-center ring-2 shadow-lg ${
+                        creatorSide === "up"
+                          ? "from-cyan-500 to-blue-600 ring-cyan-400/50 shadow-cyan-500/20"
+                          : "from-pink-500 to-purple-600 ring-pink-400/50 shadow-pink-500/20"
+                      }`}
                     >
-                      <span
-                        className={`text-3xl font-black ${creatorSide === "down" ? "text-emerald-500" : "text-rose-500"}`}
-                      >
-                        {creatorSide === "down" ? "▲" : "▼"}
+                      <span className="text-white text-2xl">
+                        {creatorSide === "up" ? "▲" : "▼"}
                       </span>
                     </div>
-                  ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-muted/20 border-2 border-dashed border-muted-foreground/40 flex items-center justify-center group">
-                      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground/30 group-hover:text-muted-foreground/50 transition-colors" />
-                    </div>
-                  )}
-                  {winner === opponent && (
-                    <div className="absolute -top-3 -left-3 bg-yellow-400 p-1.5 rounded-full shadow-lg">
-                      <Trophy className="w-4 h-4 text-black" />
-                    </div>
-                  )}
+                    {winner === duel.creator.toString() && (
+                      <div className="absolute -top-2 -right-2 bg-yellow-400 p-1 rounded-full shadow-lg">
+                        <Trophy className="w-3 h-3 text-black" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      CREATOR ({creatorSide.toUpperCase()})
+                    </p>
+                    <p className="text-sm font-mono text-foreground">
+                      {shortAddress(creator)}
+                    </p>
+                  </div>
+
+                  {/* Payout info below avatar */}
+                  <div className="bg-muted/50 rounded-lg px-4 py-2 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Potential Payout
+                    </p>
+                    <p
+                      className={`font-bold ${creatorSide === "up" ? "text-cyan-400" : "text-pink-400"}`}
+                    >
+                      2.00x · {((stakeLamports * 2) / 1e9).toFixed(4)} SOL
+                    </p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                    {isPublicArena
-                      ? "OPPONENTS"
-                      : hasOpponent
-                        ? "Opponent"
-                        : "Open Slot"}
-                  </p>
-                  <p className="text-xs font-bold text-foreground">
-                    {isPublicArena
-                      ? `${((creatorSide === "up" ? poolDown : poolUp)).toFixed(2)} SOL`
-                      : hasOpponent
-                        ? shortAddress(opponent)
-                        : (
-                          <span className="animate-pulse flex items-center gap-1.5 justify-center">
-                            ⏳ Waiting for opponent...
-                          </span>
-                        )}
-                  </p>
+
+                {/* VS CENTER */}
+                <div className="flex flex-col items-center gap-1 px-2">
+                  <span className="text-2xl">⚔️</span>
+                  <span className="text-xl font-black bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text text-transparent">
+                    VS
+                  </span>
+                  <span className="text-2xl">⚔️</span>
+                </div>
+
+                {/* Opponent side - RIGHT */}
+                <div className="flex flex-col items-center gap-3 flex-1">
+                  <div className="relative">
+                    {hasOpponent ? (
+                      <div
+                        className={`w-16 h-16 rounded-full bg-gradient-to-br flex items-center justify-center ring-2 shadow-lg ${
+                          creatorSide === "down"
+                            ? "from-cyan-500 to-blue-600 ring-cyan-400/50 shadow-cyan-500/20"
+                            : "from-pink-500 to-purple-600 ring-pink-400/50 shadow-pink-500/20"
+                        }`}
+                      >
+                        <span className="text-white text-2xl">
+                          {creatorSide === "down" ? "▲" : "▼"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-muted/30 border-2 border-dashed border-muted-foreground/40 flex items-center justify-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/50" />
+                      </div>
+                    )}
+                    {winner === opponent && (
+                      <div className="absolute -top-2 -left-2 bg-yellow-400 p-1 rounded-full shadow-lg">
+                        <Trophy className="w-3 h-3 text-black" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      {isPublicArena
+                        ? "OPPONENTS"
+                        : hasOpponent
+                          ? "OPPONENT"
+                          : "WAITING..."}
+                    </p>
+                    <p className="text-sm font-mono text-foreground">
+                      {isPublicArena ? (
+                        `${(creatorSide === "up" ? poolDown : poolUp).toFixed(2)} SOL`
+                      ) : hasOpponent ? (
+                        shortAddress(opponent)
+                      ) : (
+                        <span className="text-muted-foreground text-xs">
+                          Open Slot
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Payout info below avatar */}
+                  <div className="bg-muted/50 rounded-lg px-4 py-2 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Potential Payout
+                    </p>
+                    <p
+                      className={`font-bold ${creatorSide === "down" ? "text-cyan-400" : "text-pink-400"}`}
+                    >
+                      2.00x · {((stakeLamports * 2) / 1e9).toFixed(4)} SOL
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -699,8 +758,13 @@ function DuelPage() {
               </div>
             </div>
 
-            {((isPublicArena && !isResolved) ||
-              (!isPublicArena && isPending && !isCreator)) && (
+            {/* Show join button only if user hasn't joined and duel isn't full */}
+            {((isPublicArena && !isResolved && positions.length === 0) ||
+              (!isPublicArena &&
+                isPending &&
+                !isCreator &&
+                !hasOpponent &&
+                positions.length === 0)) && (
               <div className="space-y-4 pt-6 border-t border-border/50">
                 {isPublicArena && (
                   <div className="flex gap-2">
